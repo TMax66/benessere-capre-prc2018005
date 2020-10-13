@@ -1,0 +1,13 @@
+name: PRC201805
+title: PRC201805
+username:
+account: izslerbg
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 938779
+bundleId: 2640405
+url: https://izslerbg.shinyapps.io/PRC201805/
+when: 1575470189.18679
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .httr-oauth|codici.R
