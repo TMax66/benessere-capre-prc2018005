@@ -48,9 +48,12 @@ sanit <- readRDS(here("analisi", "data", "processed", "sanitaria.RDS"))
 parass <- readRDS(here("analisi", "data", "processed", "parassiti.RDS"))
 diagn <- readRDS(here("analisi", "data", "processed", "diagnostica.RDS"))
 ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS"))
-
-
 #######################################################################################################################
+
+##azienda##########################
+names(az)
+
+
 
 
 d1 <-read_sheet(id$id, sheet ="dataset" ) %>% 
