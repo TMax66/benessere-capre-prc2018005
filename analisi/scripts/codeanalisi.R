@@ -1,41 +1,58 @@
-library(shiny)
-library(DT)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(rpivotTable)
-library(timevis)
-library(janitor)
-library(psych)
-library(googledrive)
-library(googlesheets4)
-library(lubridate)
+library("tidyverse")
+library("DT")
+library("googledrive")
+library("googlesheets4")
+library("lubridate")
+library("here")
 options(scipen = 999)
 
-#######codici per ottenere l'autorizzazione al drive di google da fare una sola volta###
-# library(googledrive)
-# options(gargle_oauth_cache = ".secrets")
-# gargle::gargle_oauth_cache()
-# drive_auth()
-# list.files(".secrets/")#<---questo codice fa solo vedere il file presente nella cartella .secrets creata dal codice
-##precedente... la cartella .secrets deve essere inserita tra i documenti da mettere nel deploy per le applicazioni shiny
-####################################################################
+#codici per ottenere l'autorizzazione al drive di google da fare una sola volta###
+options(gargle_oauth_cache = ".secrets")
+gargle::gargle_oauth_cache()
+drive_auth()
+list.files(".secrets/")#<---questo codice fa solo vedere il file presente nella cartella .secrets creata dal codice
+#precedente... la cartella .secrets deve essere inserita tra i documenti da mettere nel deploy per le applicazioni shiny
+###################################################################
 
 ###eseguibile di routine #####
 
-options(
-  gargle_oauth_cache = ".secrets",
-  gargle_oauth_email = TRUE
-)
-drive_auth()
-gs4_auth(token = drive_token())
-mydrive<-drive_find(type = "spreadsheet") 
-id<-mydrive %>% 
- filter(name=="prc2018005") %>% 
-  select(id)
-dati<-read_sheet(id$id)
+# options(
+#   gargle_oauth_cache = ".secrets",
+#   gargle_oauth_email = TRUE
+# )
+# drive_auth()
+# gs4_auth(token = drive_token())
+# mydrive<-drive_find(type = "spreadsheet") 
+# id<-mydrive %>% 
+#  filter(name=="prc2018005") %>% 
+#   select(id)
+# #dati<-read_sheet(id$id)
+# d1 <-read_sheet(id$id, sheet ="dataset")
+# d2 <-read_sheet(id$id, sheet ="massa")
+# d3 <-read_sheet(id$id, sheet ="san" )
+# d4 <-read_sheet(id$id, sheet ="par" )
+# d5 <-read_sheet(id$id, sheet ="diagn" )
+# d6 <-read_sheet(id$id, sheet ="ben" )
+# 
+# azienda <- saveRDS(d1, here("analisi", "data", "processed","azienda.RDS"))
+# massa <- saveRDS(d2, here("analisi", "data", "processed","massa.RDS"))
+# sanitaria <- saveRDS(d3, here("analisi", "data", "processed","sanitaria.RDS"))
+# parassiti <- saveRDS(d4, here("analisi", "data", "processed","parassiti.RDS"))
+# diagnostica <- saveRDS(d5, here("analisi", "data", "processed","diagnostica.RDS"))
+# benessere <- saveRDS(d6, here("analisi", "data", "processed","benessere.RDS"))
 
-#####     
+
+az <- readRDS(here("analisi", "data", "processed", "azienda.RDS"))
+milk <- readRDS(here("analisi", "data", "processed", "massa.RDS"))
+sanit <- readRDS(here("analisi", "data", "processed", "sanitaria.RDS"))
+parass <- readRDS(here("analisi", "data", "processed", "parassiti.RDS"))
+diagn <- readRDS(here("analisi", "data", "processed", "diagnostica.RDS"))
+ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS"))
+
+
+#######################################################################################################################
+
+
 d1 <-read_sheet(id$id, sheet ="dataset" ) %>% 
    mutate(azienda=casefold(azienda, upper = TRUE),
          mese=recode(mese,
@@ -45,9 +62,9 @@ d1 <-read_sheet(id$id, sheet ="dataset" ) %>%
          time=as.Date(paste(anno, mese, 15, sep="-")))
 
 
-d1 %>% 
-  group_by(azienda, time) %>% 
-  ggplot(aes(x=time, y=scale(kgcapo), group=azienda))+geom_line()
+ d1 %>% 
+   group_by(azienda, time) %>% 
+   ggplot(aes(x=time, y=scale(kgcapo), group=azienda))+geom_line()
 
 
 
@@ -90,7 +107,11 @@ d2 %>%
   drop_na(cbt) %>% 
   ggplot(aes(x=time, y=cbt, group=azienda))+geom_line()+scale_y_log10()
 
-
+d2 %>% 
+  group_by(azienda, time) %>% 
+  drop_na(ureaFTIR) %>% 
+  ggplot(aes(x=time, y=ureaFTIR, group=azienda))+geom_line()+scale_y_log10()+
+ 
 
 
 

@@ -1,0 +1,38 @@
+---
+title: "PRC2019005- analisi preliminari"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+```{r  include=FALSE}
+library("tidyverse")
+library("DT")
+library("googledrive")
+library("googlesheets4")
+library("lubridate")
+library("here")
+library("DataExplorer")
+
+az <- readRDS(here("analisi", "data", "processed", "azienda.RDS"))
+milk <- readRDS(here("analisi", "data", "processed", "massa.RDS"))
+sanit <- readRDS(here("analisi", "data", "processed", "sanitaria.RDS"))
+parass <- readRDS(here("analisi", "data", "processed", "parassiti.RDS"))
+diagn <- readRDS(here("analisi", "data", "processed", "diagnostica.RDS"))
+ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS"))
+
+```
+
+# 
+
+```{r eval=FALSE, include=FALSE}
+milk  %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-")))
+```
+
+
