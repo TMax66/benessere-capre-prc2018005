@@ -22,18 +22,19 @@ list.files(".secrets/")#<---questo codice fa solo vedere il file presente nella 
 # )
 # drive_auth()
 # gs4_auth(token = drive_token())
-# mydrive<-drive_find(type = "spreadsheet") 
-# id<-mydrive %>% 
-#  filter(name=="prc2018005") %>% 
+# mydrive<-drive_find(type = "spreadsheet")
+# id<-mydrive %>%
+#  filter(name=="prc2018005") %>%
 #   select(id)
-# #dati<-read_sheet(id$id)
+
+###preparazione dati#####
 # d1 <-read_sheet(id$id, sheet ="dataset")
 # d2 <-read_sheet(id$id, sheet ="massa")
 # d3 <-read_sheet(id$id, sheet ="san" )
 # d4 <-read_sheet(id$id, sheet ="par" )
 # d5 <-read_sheet(id$id, sheet ="diagn" )
 # d6 <-read_sheet(id$id, sheet ="ben" )
-# 
+# # 
 # azienda <- saveRDS(d1, here("analisi", "data", "processed","azienda.RDS"))
 # massa <- saveRDS(d2, here("analisi", "data", "processed","massa.RDS"))
 # sanitaria <- saveRDS(d3, here("analisi", "data", "processed","sanitaria.RDS"))
@@ -51,23 +52,43 @@ ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS"))
 #######################################################################################################################
 
 ##azienda##########################
-names(az)
-
-
-
-
-d1 <-read_sheet(id$id, sheet ="dataset" ) %>% 
+az %>% 
    mutate(azienda=casefold(azienda, upper = TRUE),
          mese=recode(mese,
                      gennaio=1,febbraio=2,marzo=3,aprile=4,
                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
                      ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-")))
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>%
+  drop_na(kgcapo) %>% 
+ left_join( (ben %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+  filter(anno != 2020 ) %>% 
+    mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
+  ), by = "azienda") %>% 
+  drop_na(bencat) %>% 
+ggplot(aes(x=time.x, y = kgcapo))+
+  geom_line()+ facet_wrap(~azienda) 
 
 
- d1 %>% 
-   group_by(azienda, time) %>% 
-   ggplot(aes(x=time, y=scale(kgcapo), group=azienda))+geom_line()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
