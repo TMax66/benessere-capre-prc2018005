@@ -4,13 +4,14 @@ library("googledrive")
 library("googlesheets4")
 library("lubridate")
 library("here")
+library("hrbrthemes")
 options(scipen = 999)
 
 #codici per ottenere l'autorizzazione al drive di google da fare una sola volta###
-options(gargle_oauth_cache = ".secrets")
-gargle::gargle_oauth_cache()
-drive_auth()
-list.files(".secrets/")#<---questo codice fa solo vedere il file presente nella cartella .secrets creata dal codice
+# options(gargle_oauth_cache = ".secrets")
+# gargle::gargle_oauth_cache()
+# drive_auth()
+# list.files(".secrets/")#<---questo codice fa solo vedere il file presente nella cartella .secrets creata dal codice
 #precedente... la cartella .secrets deve essere inserita tra i documenti da mettere nel deploy per le applicazioni shiny
 ###################################################################
 
@@ -71,15 +72,276 @@ az %>%
     mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
   ), by = "azienda") %>% 
   drop_na(bencat) %>% 
-ggplot(aes(x=time.x, y = kgcapo))+
-  geom_line()+ facet_wrap(~azienda) 
+ggplot(aes(x=time.x, y = kgcapo, group = azienda))+ geom_point()+
+  geom_line()+ facet_wrap(bencat~.) + stat_smooth(aes(x= time.x, y=kgcapo))
+  
+
+az %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>%
+  drop_na(kgcapo) %>% 
+  left_join( (ben %>% 
+                mutate(azienda=casefold(azienda, upper = TRUE),
+                       mese=recode(mese,
+                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
+                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                                   ottobre=10, novembre=11,dicembre=12), 
+                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+                filter(anno != 2020 ) %>% 
+                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
+  ), by = "azienda") %>% 
+  drop_na(bencat) %>% 
+  ggplot(aes(x=time.x, y = kgcapo))+  
+  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
+  geom_line(aes(x=time.x, y = kgcapo, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  theme_ipsum_rc()
 
 
 
+milk %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+  left_join( (ben %>% 
+                mutate(azienda=casefold(azienda, upper = TRUE),
+                       mese=recode(mese,
+                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
+                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                                   ottobre=10, novembre=11,dicembre=12), 
+                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+                filter(anno != 2020 ) %>% 
+                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
+  ), by = "azienda") %>% 
+  drop_na(bencat) %>% 
+  ggplot(aes(x=time.x, y = log(scc)))+  
+  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
+  geom_line(aes(x=time.x, y = log(scc), group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  theme_ipsum_rc()
+  
+
+
+milk %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+  left_join( (ben %>% 
+                mutate(azienda=casefold(azienda, upper = TRUE),
+                       mese=recode(mese,
+                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
+                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                                   ottobre=10, novembre=11,dicembre=12), 
+                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+                filter(anno != 2020 ) %>% 
+                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
+  ), by = "azienda") %>% 
+  drop_na(bencat) %>% 
+  ggplot(aes(x=time.x, y = proteine))+  
+  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
+  geom_line(aes(x=time.x, y = proteine, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  theme_ipsum_rc()
+
+
+milk %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+  left_join( (ben %>% 
+                mutate(azienda=casefold(azienda, upper = TRUE),
+                       mese=recode(mese,
+                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
+                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                                   ottobre=10, novembre=11,dicembre=12), 
+                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+                filter(anno != 2020 ) %>% 
+                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
+  ), by = "azienda") %>% 
+  drop_na(bencat) %>% 
+  ggplot(aes(x=time.x, y = grasso))+  
+  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
+  geom_line(aes(x=time.x, y = grasso, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  theme_ipsum_rc()
 
 
 
+milk %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+  left_join( (ben %>% 
+                mutate(azienda=casefold(azienda, upper = TRUE),
+                       mese=recode(mese,
+                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
+                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                                   ottobre=10, novembre=11,dicembre=12), 
+                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+                filter(anno != 2020 ) %>% 
+                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
+  ), by = "azienda") %>% 
+  drop_na(bencat) %>% 
+  ggplot(aes(x=time.x, y = lattosio))+  
+  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
+  geom_line(aes(x=time.x, y = lattosio, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  theme_ipsum_rc()
 
+
+milk %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+  left_join( (ben %>% 
+                mutate(azienda=casefold(azienda, upper = TRUE),
+                       mese=recode(mese,
+                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
+                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                                   ottobre=10, novembre=11,dicembre=12), 
+                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+                filter(anno != 2020 ) %>% 
+                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
+  ), by = "azienda") %>% 
+  drop_na(bencat) %>% 
+  ggplot(aes(x=time.x, y = caseina))+  
+  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
+  geom_line(aes(x=time.x, y = caseina, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  theme_ipsum_rc()
+
+milk %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+  left_join( (ben %>% 
+                mutate(azienda=casefold(azienda, upper = TRUE),
+                       mese=recode(mese,
+                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
+                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                                   ottobre=10, novembre=11,dicembre=12), 
+                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+                filter(anno != 2020 ) %>% 
+                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
+  ), by = "azienda") %>% 
+  drop_na(bencat) %>% 
+  ggplot(aes(x=time.x, y = log(cbt)))+  
+  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
+  geom_line(aes(x=time.x, y = log(cbt), group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  theme_ipsum_rc()
+
+
+milk %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+  left_join( (ben %>% 
+                mutate(azienda=casefold(azienda, upper = TRUE),
+                       mese=recode(mese,
+                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
+                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                                   ottobre=10, novembre=11,dicembre=12), 
+                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+                filter(anno != 2020 ) %>% 
+                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
+  ), by = "azienda") %>% 
+  drop_na(bencat) %>% 
+  ggplot(aes(x=time.x, y = ureaFTIR))+  
+  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
+  geom_line(aes(x=time.x, y = ureaFTIR, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  theme_ipsum_rc()
+
+
+
+milk %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+  left_join( (ben %>% 
+                mutate(azienda=casefold(azienda, upper = TRUE),
+                       mese=recode(mese,
+                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
+                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                                   ottobre=10, novembre=11,dicembre=12), 
+                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+                filter(anno != 2020 ) %>% 
+                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
+  ), by = "azienda") %>% 
+  drop_na(bencat) %>% 
+  ggplot(aes(x=time.x, y = ureapHm))+  
+  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
+  geom_line(aes(x=time.x, y = ureapHm, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  theme_ipsum_rc()
+
+
+sanit %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+  left_join( (ben %>% 
+                mutate(azienda=casefold(azienda, upper = TRUE),
+                       mese=recode(mese,
+                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
+                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                                   ottobre=10, novembre=11,dicembre=12), 
+                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+                filter(anno != 2020 ) %>% 
+                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
+  ), by = "azienda") %>% 
+  drop_na(bencat) %>% 
+  ggplot(aes(x=time.x, y = `paratbc(%)`))+  
+  facet_wrap(bencat~., nrow = 1) + stat_smooth(se = FALSE)+
+  geom_line(aes(x=time.x, y =`paratbc(%)`, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  theme_ipsum_rc()
+
+
+sanit %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+  left_join( (ben %>% 
+                mutate(azienda=casefold(azienda, upper = TRUE),
+                       mese=recode(mese,
+                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
+                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                                   ottobre=10, novembre=11,dicembre=12), 
+                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+                filter(anno != 2020 ) %>% 
+                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
+  ), by = "azienda") %>% 
+  drop_na(bencat) %>% 
+  ggplot(aes(x=time.x, y = `caev(%)`))+  
+  facet_wrap(bencat~., nrow = 1) + stat_smooth(se = FALSE)+
+  geom_line(aes(x=time.x, y =`caev(%)`, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  theme_ipsum_rc()
 
 
 
