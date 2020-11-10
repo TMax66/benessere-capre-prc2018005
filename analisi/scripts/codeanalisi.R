@@ -53,28 +53,6 @@ ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS"))
 #######################################################################################################################
 
 ##azienda##########################
-az %>% 
-   mutate(azienda=casefold(azienda, upper = TRUE),
-         mese=recode(mese,
-                     gennaio=1,febbraio=2,marzo=3,aprile=4,
-                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                     ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>%
-  drop_na(kgcapo) %>% 
- left_join( (ben %>% 
-  mutate(azienda=casefold(azienda, upper = TRUE),
-         mese=recode(mese,
-                     gennaio=1,febbraio=2,marzo=3,aprile=4,
-                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                     ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-  filter(anno != 2020 ) %>% 
-    mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
-  ), by = "azienda") %>% 
-  drop_na(bencat) %>% 
-ggplot(aes(x=time.x, y = kgcapo, group = azienda))+ geom_point()+
-  geom_line()+ facet_wrap(bencat~.) + stat_smooth(aes(x= time.x, y=kgcapo))
-  
 
 az %>% 
   mutate(azienda=casefold(azienda, upper = TRUE),
