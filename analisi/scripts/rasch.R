@@ -7,10 +7,16 @@ library("eRm")
 library("ltm")
 library("difR")
 library("hablar")
+library("mirt")
 options(scipen = 999)
 
-dati <- read_excel("analisi/data/raw/Dataset.xlsx", 
-                      sheet = "gruppoITEM-A")
+# dati <- read_excel("analisi/data/raw/Dataset.xlsx", 
+#                       sheet = "gruppoITEM-A")
+
+
+dati <- read_excel(here("analisi", "data", "raw", "Dataset.xlsx"), 
+                        sheet = "items")
+
 dati <- dati %>% 
   filter(anno==2019)
 
@@ -27,7 +33,26 @@ dt <- dati %>%
          )
   
 
+summary(dt)
+
+dt.poly <- dt[, c(4,5,6,11,12,13,14)]
+
+dt.poly <- dt[, 4:14]
+dt.poly <- dt.poly %>% 
+  mutate_if(is.factor, as.numeric) %>% 
+  mutate_all(~.-1)
+
+mod <- mirt(data=dt.poly, 
+            model = 1, 
+            itemtype = "gpcm")
 
 
+itemplot(mod, 7, type = "info")
 
- 
+plot(mod, type = "info")
+
+plotPImap(PCM(dt.poly))
+
+PCM(dt.poly)
+
+data("pcmdat")
