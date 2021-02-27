@@ -15,7 +15,7 @@ options(scipen = 999)
 
 
 dati <- read_excel(here("analisi", "data", "raw", "Dataset.xlsx"), 
-                        sheet = "items")
+                        sheet = "Items")
 
 dati <- dati %>% 
   filter(anno==2019)
