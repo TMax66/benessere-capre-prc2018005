@@ -17,16 +17,7 @@ options(scipen = 999)
 dati <- read_excel(here("analisi", "data", "raw", "Dataset.xlsx"), 
                         sheet = "Items")
 
- 
-  
-
-
-
-
-
-
-
- dt <- dati %>% 
+dt <- dati %>% 
   filter(anno==2019) %>% 
   dplyr::select(-cure, -nocivitaedifici, -illuminazione, -oblivion, -illumispezioni, -registrifarmaco, -registriaz, -sostillecite) %>% 
   convert(fct(addetti, formazione,gestionegr, ispezioni,razione, acqua, puliziaabb, puliziaamb, mungitura, biosicurezza, 
@@ -86,19 +77,19 @@ dati <- read_excel(here("analisi", "data", "raw", "Dataset.xlsx"),
  
 
 
-dt.poly <- dt[, 3:50]
+dt.poly <- dt[, 3:52]
 dt.poly <- dt.poly %>% 
   mutate_if(is.factor, as.numeric) %>%  
-  dplyr::mutate_all(~.-1)
+  dplyr::mutate_if(is.numeric, ~.-1) %>% glimpse()
 
-mod <- mirt(data=dt.poly, 
+mod <- mirt(data=dt.poly[, -1], 
             model = 1, 
             itemtype = "gpcm")
 
 
-itemplot(mod, 7, type = "info")
+itemplot(mod, item = 30, type = "score")
 
-plot(mod, type = "info")
+plot(mod, type = "score")
 
 plotPImap(PCM(dt.poly))
 
