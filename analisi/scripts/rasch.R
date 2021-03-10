@@ -8,6 +8,7 @@ library("ltm")
 library("difR")
 library("hablar")
 library("mirt")
+library("DataExplorer")
 options(scipen = 999)
 
 # dati <- read_excel("analisi/data/raw/Dataset.xlsx", 
@@ -71,6 +72,7 @@ dt <- dati %>%
          approvacqua= fct_relevel(approvacqua,"Accettabile", after = 1 ),
          controattrezz= fct_relevel(controattrezz,"Accettabile", after = 1 ),
          supdecadulti= fct_relevel(supdecadulti,"Accettabile", after = 1 ),
+         parassitosi= fct_relevel(parassitosi,"Accettabile", after = 1 ),
          ) 
   
 
@@ -89,7 +91,7 @@ mod <- mirt(data=dt.poly[, -1],
 
 itemplot(mod, item = 30, type = "score")
 
-plot(mod, type = "score")
+plot(mod, type = "trace")
 
 plotPImap(PCM(dt.poly))
 
