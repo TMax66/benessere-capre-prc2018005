@@ -82,18 +82,18 @@ dt <- dati %>%
 dt.poly <- dt[, 3:52]
 dt.poly <- dt.poly %>% 
   mutate_if(is.factor, as.numeric) %>%  
-  dplyr::mutate_if(is.numeric, ~.-1) %>% glimpse()
+  dplyr::mutate_if(is.numeric, ~.-1) 
 
 mod <- mirt(data=dt.poly[, -1], 
             model = 1, 
             itemtype = "gpcm")
 
 
-itemplot(mod, item = 30, type = "score")
+itemplot(mod, type = "score")
 
-plot(mod, type = "trace")
+plot(mod, type = "score")
 
-plotPImap(PCM(dt.poly))
+plotPImap(PCM(dt.poly[, -1]))
 
 PCM(dt.poly)
 
