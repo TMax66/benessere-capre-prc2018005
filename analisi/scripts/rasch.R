@@ -20,7 +20,7 @@ dati <- read_excel(here("analisi", "data", "raw", "Dataset.xlsx"),
 
 dt <- dati %>% 
   filter(anno==2019) %>% 
-  dplyr::select(-cure, -nocivitaedifici, -illuminazione, -oblivion, -illumispezioni, -registrifarmaco, -registriaz, -sostillecite) %>% 
+  dplyr::select(-oblivion) %>% 
   convert(fct(addetti, formazione,gestionegr, ispezioni,razione, acqua, puliziaabb, puliziaamb, mungitura, biosicurezza, 
               ripariest, stabulazione, supdecadulti, supdecubrimonta, boxbecchi, capretteria, mangiatoiaadulti, supabbadulti, infermeria, 
               manmungitura, tempumid, testlatenza, bcsadulte, puliziadulte, lesioneadulte, zoppie, unghioni, ascessi, mammella, 
@@ -89,9 +89,9 @@ mod <- mirt(data=dt.poly[, -1],
             itemtype = "gpcm")
 
 
-itemplot(mod, type = "score")
+itemplot(mod, type = "trace")
 
-plot(mod, type = "score")
+plot(mod, type = "trace")
 
 plotPImap(PCM(dt.poly[, -1]))
 
