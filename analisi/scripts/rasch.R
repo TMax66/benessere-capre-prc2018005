@@ -80,7 +80,7 @@ dt <- dati %>%
  
 
 
-dt.poly <- dt[, 3:52]
+dt.poly <- dt[, 3:35]
 dt.poly <- dt.poly %>% 
   mutate_if(is.factor, as.numeric) %>%  
   dplyr::mutate_if(is.numeric, ~.-1) 
@@ -90,12 +90,9 @@ mod <- mirt(data=dt.poly[, -1],
             itemtype = "gpcm")
 
 
-itemplot(mod, type = "trace")
+itemplot(mod, item= "contattimezzi", type = "trace")
 
 plot(mod, type = "trace")
 
 plotPImap(PCM(dt.poly[, -1]))
 
-PCM(dt.poly)
-
-data("pcmdat")
