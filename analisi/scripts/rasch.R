@@ -11,10 +11,8 @@ library("mirt")
 library("DataExplorer")
 options(scipen = 999)
 
-# dati <- read_excel("analisi/data/raw/Dataset.xlsx", 
-#                       sheet = "gruppoITEM-A")
 
-
+###Wrangling data####
 dati <- read_excel(here("analisi", "data", "raw", "Dataset.xlsx"), 
                         sheet = "Items")
 
@@ -77,22 +75,92 @@ dt <- dati %>%
          ) 
   
 
- 
+### Item analysis####
 
-
-dt.poly <- dt[, 3:35]
+###32 items###
+dt.poly <- dt[, 4:35]
 dt.poly <- dt.poly %>% 
   mutate_if(is.factor, as.numeric) %>%  
-  dplyr::mutate_if(is.numeric, ~.-1) 
+  mutate_if(is.numeric, ~.-1) 
 
-mod <- mirt(data=dt.poly[, -1], 
+mod <- mirt(data=dt.poly, 
             model = 1, 
             itemtype = "gpcm")
 
-
-itemplot(mod, item= "contattimezzi", type = "trace")
+ 
 
 plot(mod, type = "trace")
 
-plotPImap(PCM(dt.poly[, -1]))
+plotPImap(PCM(dt.poly))
 
+dt.poly %>% 
+  mutate(score = rowSums(.)) %>% 
+  View()
+
+###22 items###
+
+dt.poly2 <- dt[, c(4, 6:11, 13:22, 24, 26:27,35)]
+dt.poly2 <- dt.poly2 %>% 
+  mutate_if(is.factor, as.numeric) %>%  
+  mutate_if(is.numeric, ~.-1) 
+
+mod2 <- mirt(data=dt.poly2, 
+            model = 1, 
+            itemtype = "gpcm")
+
+plot(mod2, type = "trace")
+
+plotPImap(PCM(dt.poly2))
+
+plot(mod2, type = "score")
+
+welfscore <- dt.poly2 %>% 
+  mutate(score = rowSums(.)) %>% 
+  cbind(dt[,3])
+
+hist(welfscore$score)
+
+###dopo dicotomizzazione item politomici anomali (lesioniadulte, 
+## zoppie, unghioni, ascessi, mortcapretti##
+
+
+dt$zoppie
+table(dt$lesioneadulte)
+
+dt2 <- dt %>% 
+  mutate(zoppie= fct_collapse(zoppie, 
+                              Insufficiente = "Insufficiente", 
+                              Ottimale = c( "Accettabile", "Ottimale")), 
+         lesioneadulte = fct_collapse(lesioneadulte, 
+                                      Insufficiente = "Insufficiente", 
+                                      Ottimale = c( "Accettabile", "Ottimale")), 
+         unghioni = fct_collapse(unghioni, 
+                                      Insufficiente = "Insufficiente", 
+                                      Ottimale = c( "Accettabile", "Ottimale")), 
+         ascessi = fct_collapse(ascessi, 
+                                      Insufficiente = "Insufficiente", 
+                                      Ottimale = c( "Accettabile", "Ottimale")), 
+         mortcapretti = fct_collapse(mortcapretti, 
+                                      Insufficiente = "Insufficiente", 
+                                      Ottimale = c( "Accettabile", "Ottimale"))
+         )
+ 
+dt2.poly <- dt2[, c(4, 6:11, 13:22, 24, 26:31, 33:35)]
+
+dt2.poly <- dt2.poly %>% 
+  mutate_if(is.factor, as.numeric) %>%  
+  mutate_if(is.numeric, ~.-1) 
+
+mod3 <- mirt(data=dt2.poly, 
+             model = 1, 
+             itemtype = "gpcm")
+
+plot(mod3, type = "trace")
+
+plotPImap(PCM(dt2.poly))
+
+plot(mod3, type = "score")
+
+welfscore2 <- dt2.poly %>% 
+  mutate(score = rowSums(.)) %>% 
+  cbind(dt[,3])
