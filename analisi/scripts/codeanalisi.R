@@ -17,25 +17,25 @@ options(scipen = 999)
 
 ###eseguibile di routine #####
 
-# options(
-#   gargle_oauth_cache = ".secrets",
-#   gargle_oauth_email = TRUE
-# )
-# drive_auth()
-# gs4_auth(token = drive_token())
-# mydrive<-drive_find(type = "spreadsheet")
-# id<-mydrive %>%
-#  filter(name=="prc2018005") %>%
-#   select(id)
+options(
+  gargle_oauth_cache = ".secrets",
+  gargle_oauth_email = TRUE
+)
+drive_auth()
+gs4_auth(token = drive_token())
+mydrive<-drive_find(type = "spreadsheet")
+id<-mydrive %>%
+ filter(name=="prc2018005") %>%
+  select(id)
 
-###preparazione dati#####
+# ##preparazione dati#####
 # d1 <-read_sheet(id$id, sheet ="dataset")
 # d2 <-read_sheet(id$id, sheet ="massa")
 # d3 <-read_sheet(id$id, sheet ="san" )
 # d4 <-read_sheet(id$id, sheet ="par" )
 # d5 <-read_sheet(id$id, sheet ="diagn" )
 # d6 <-read_sheet(id$id, sheet ="ben" )
-# # 
+# #
 # azienda <- saveRDS(d1, here("analisi", "data", "processed","azienda.RDS"))
 # massa <- saveRDS(d2, here("analisi", "data", "processed","massa.RDS"))
 # sanitaria <- saveRDS(d3, here("analisi", "data", "processed","sanitaria.RDS"))
@@ -50,6 +50,8 @@ sanit <- readRDS(here("analisi", "data", "processed", "sanitaria.RDS"))
 parass <- readRDS(here("analisi", "data", "processed", "parassiti.RDS"))
 diagn <- readRDS(here("analisi", "data", "processed", "diagnostica.RDS"))
 ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS"))
+
+
 #######################################################################################################################
 
 ##azienda##########################
