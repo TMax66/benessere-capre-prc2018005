@@ -50,11 +50,36 @@ sanit <- readRDS(here("analisi", "data", "processed", "sanitaria.RDS"))
 parass <- readRDS(here("analisi", "data", "processed", "parassiti.RDS"))
 diagn <- readRDS(here("analisi", "data", "processed", "diagnostica.RDS"))
 ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS"))
-
+welfscore <- readRDS(here("analisi", "data", "processed", "welfscore.RDS"))
 
 #######################################################################################################################
 
 ##azienda##########################
+
+az %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>%
+  drop_na(kgcapo) %>% 
+  left_join(
+    (welfscore %>% 
+       dplyr::select(azienda, score) %>% 
+       mutate(bencat = cut(score, quantile(score), include.lowest = T),
+       azienda=casefold(azienda, upper = TRUE))), by='azienda') %>%  View()
+  ggplot(aes(x=time, y = kgcapo))+  
+  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
+  geom_line(aes(x=time, y = kgcapo, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  theme_ipsum_rc()
+
+
+
+
+
+
+
 
 az %>% 
   mutate(azienda=casefold(azienda, upper = TRUE),
@@ -79,6 +104,11 @@ az %>%
   facet_wrap(bencat~., nrow = 1) + stat_smooth()+
   geom_line(aes(x=time.x, y = kgcapo, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
   theme_ipsum_rc()
+
+
+
+
+
 
 
 

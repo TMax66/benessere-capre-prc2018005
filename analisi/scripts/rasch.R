@@ -17,7 +17,7 @@ dati <- read_excel(here("analisi", "data", "raw", "Dataset.xlsx"),
                         sheet = "Items")
 
 dt <- dati %>% 
-  filter(anno==2019) %>% 
+  filter(anno==2019 | anno == 2017) %>% 
   dplyr::select(-oblivion) %>% 
   convert(fct(addetti, formazione,gestionegr, ispezioni,razione, acqua, puliziaabb, puliziaamb, mungitura, biosicurezza, 
               ripariest, stabulazione, supdecadulti, supdecubrimonta, boxbecchi, capretteria, mangiatoiaadulti, supabbadulti, infermeria, 
@@ -166,3 +166,7 @@ plot(mod3, type = "score")
 welfscore2 <- dt2.poly %>% 
   mutate(score = rowSums(.)) %>% 
   cbind(dt[,3])
+
+
+
+saveRDS(welfscore2, here("analisi", "data", "processed","welfscore.RDS"))
