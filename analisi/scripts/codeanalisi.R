@@ -54,6 +54,16 @@ welfscore <- readRDS(here("analisi", "data", "processed", "welfscore.RDS"))
 
 #######################################################################################################################
 
+wel <- ben %>% 
+  left_join(welfscore, by= "azienda") %>% 
+  mutate(bencat = cut(complben, quantile(complben), include.lowest = TRUE), 
+         scorecat = cut(score, quantile(score), include.lowest = T))
+
+
+
+table(wel$bencat, wel$scorecat)
+
+
 ##azienda##########################
 ### uso welfscore####
 prod_latte <- az %>% 
@@ -62,30 +72,76 @@ prod_latte <- az %>%
                      gennaio=1,febbraio=2,marzo=3,aprile=4,
                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
                      ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>%
+         time=as.Date(paste(anno, mese, 15, sep="-")), 
+         prelievo = anno+mese) %>%
   drop_na(kgcapo) %>% 
   left_join(
     (welfscore %>% 
        dplyr::select(azienda, score) %>% 
-       mutate(bencat = cut(score, quantile(score), include.lowest = T),
+       mutate(bencat = cut(score, quantile(score), include.lowest = T), 
+              randomvalue = rnorm(nrow(.), 0,1),
+              rcat = cut(randomvalue, quantile(randomvalue), include.lowest = T), 
        azienda=casefold(azienda, upper = TRUE))), by='azienda') 
-  # ggplot(aes(x=time, y = kgcapo))+  
-  # facet_wrap(bencat~., nrow = 1) + stat_smooth()+
+
+
+
+
+
+  # ggplot(aes(x=time, y = kgcapo))+
+  # facet_wrap(rcat~., nrow = 1) + stat_smooth()+
   # geom_line(aes(x=time, y = kgcapo, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
   # theme_ipsum_rc()
 
-
-
-prod_latte <- prod_latte %>% 
-  select(azienda, time, kgcapo, score, caprelatt) %>% 
+ 
+###esamino l'andamento nel tempo della variabile kgcapo delle singole aziende
+  prod_latte %>% 
+  select(azienda, time, kgcapo, score, caprelatt, bencat) %>% 
   group_by(azienda) %>% 
   mutate(inmilk = mean(caprelatt), 
          N= n()) %>% 
   select(-caprelatt) %>% 
   filter(N >= 10) %>% 
   arrange(time) %>% 
-  pivot_wider(names_from = time, values_from = kgcapo) 
+  #pivot_wider(names_from = time, values_from = kgcapo) %>% 
+  ggplot(aes(x = time, y = kgcapo)) +
+  geom_point() + geom_line()+
+  #coord_cartesian(ylim = c(1, 6)) +
+    stat_smooth(method = "loess", se = F, span = .9)+
+  theme(panel.grid = element_blank()) +
+  facet_wrap(~azienda)
+    
+###esamino l'intero set delle traiettore smoothed
+  
+  prod_latte %>% 
+    select(azienda, time, kgcapo, score, caprelatt, bencat) %>% 
+    group_by(azienda) %>% 
+    mutate(inmilk = mean(caprelatt), 
+           N= n()) %>% 
+    select(-caprelatt) %>% 
+    filter(N >= 10) %>% 
+    arrange(time) %>% 
+    ggplot(aes(x = time, y = kgcapo)) +
+    stat_smooth(method = "lm", se = F, span = .9, size = 2) +
+    stat_smooth(aes(group = azienda),
+                method = "lm", se = F, span = .9, size = 1/4)
+    
+    
+###Smooting the empirical trajectory using single-level Bayesian regression
+  
+  by_az <- 
+    prod_latte %>% 
+    group_by(azienda) %>% 
+    nest()
 
+library(brms)
+
+  dati <- by_az$data[[1]]
+  fit2.1 <-
+    brm(data = dati, 
+        formula = kgcapo ~ 1 + prelievo,
+        prior = prior(normal(0, 2), class = b),
+        iter = 4000, chains = 4, cores = 4,
+        seed = 2)
 
 
 

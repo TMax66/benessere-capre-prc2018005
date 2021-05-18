@@ -43,3 +43,7 @@ ggplot(x, aes(x=time, y = kgcapo))+
   facet_wrap(bencat~., nrow = 1) + stat_smooth()+
   geom_line(aes(x=time, y = kgcapo, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
   theme_ipsum_rc()
+
+
+cut(quantile(rnorm(1000, 0,1)))
+quantile(rnorm(1000, 0,1))
