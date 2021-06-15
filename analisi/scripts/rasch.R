@@ -17,7 +17,7 @@ dati <- read_excel(here("analisi", "data", "raw", "Dataset.xlsx"),
                         sheet = "Items")
 
 dt <- dati %>% 
-  filter(anno==2019) %>% 
+  filter(anno==2019 | anno == 2017) %>% 
   dplyr::select(-oblivion) %>% 
   convert(fct(addetti, formazione,gestionegr, ispezioni,razione, acqua, puliziaabb, puliziaamb, mungitura, biosicurezza, 
               ripariest, stabulazione, supdecadulti, supdecubrimonta, boxbecchi, capretteria, mangiatoiaadulti, supabbadulti, infermeria, 
@@ -78,7 +78,7 @@ dt <- dati %>%
 ### Item analysis####
 
 ###32 items###
-dt.poly <- dt[, 4:35]
+dt.poly <- dt[, c(4:35)]
 dt.poly <- dt.poly %>% 
   mutate_if(is.factor, as.numeric) %>%  
   mutate_if(is.numeric, ~.-1) 
@@ -90,6 +90,8 @@ mod <- mirt(data=dt.poly,
  
 
 plot(mod, type = "trace")
+
+plot(mod, type = "score")
 
 plotPImap(PCM(dt.poly))
 
@@ -124,8 +126,8 @@ hist(welfscore$score)
 ## zoppie, unghioni, ascessi, mortcapretti##
 
 
-dt$zoppie
-table(dt$lesioneadulte)
+# dt$zoppie
+# table(dt$lesioneadulte)
 
 dt2 <- dt %>% 
   mutate(zoppie= fct_collapse(zoppie, 
@@ -164,3 +166,7 @@ plot(mod3, type = "score")
 welfscore2 <- dt2.poly %>% 
   mutate(score = rowSums(.)) %>% 
   cbind(dt[,3])
+
+
+
+saveRDS(welfscore2, here("analisi", "data", "processed","welfscore.RDS"))
