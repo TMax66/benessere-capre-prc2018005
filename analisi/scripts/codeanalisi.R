@@ -27,18 +27,24 @@ mydrive<-drive_find(type = "spreadsheet")
 id<-mydrive %>%
  filter(name=="prc2018005") %>%
   select(id)
-
-# ##preparazione dati#####
+# 
+# # ##preparazione dati#####
 # d1 <-read_sheet(id$id, sheet ="dataset")
 # d2 <-read_sheet(id$id, sheet ="massa")
-# d3 <-read_sheet(id$id, sheet ="san" )
+d3 <-read_sheet(id$id, sheet ="san" )
+# 
+d3 <- d3 %>%
+  group_by(azienda) %>%
+  mutate(across (4:8,  ~ mean(.x, na.rm = TRUE)))
+
+
 # d4 <-read_sheet(id$id, sheet ="par" )
 # d5 <-read_sheet(id$id, sheet ="diagn" )
 # d6 <-read_sheet(id$id, sheet ="ben" )
 # #
 # azienda <- saveRDS(d1, here("analisi", "data", "processed","azienda.RDS"))
 # massa <- saveRDS(d2, here("analisi", "data", "processed","massa.RDS"))
-# sanitaria <- saveRDS(d3, here("analisi", "data", "processed","sanitaria.RDS"))
+sanitaria <- saveRDS(d3, here("analisi", "data", "processed","sanitaria.RDS"))
 # parassiti <- saveRDS(d4, here("analisi", "data", "processed","parassiti.RDS"))
 # diagnostica <- saveRDS(d5, here("analisi", "data", "processed","diagnostica.RDS"))
 # benessere <- saveRDS(d6, here("analisi", "data", "processed","benessere.RDS"))
@@ -50,6 +56,7 @@ sanit <- readRDS(here("analisi", "data", "processed", "sanitaria.RDS"))
 parass <- readRDS(here("analisi", "data", "processed", "parassiti.RDS"))
 diagn <- readRDS(here("analisi", "data", "processed", "diagnostica.RDS"))
 ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS"))
+
 
 
 
@@ -76,9 +83,9 @@ ben <- ben %>%
 # table(wel$bencat, wel$scorecat)
 
 
-##azienda##########################
+##DATSET PER ANALISI##########################
 
-az %>% 
+df <- az %>% 
   left_join(
     (ben %>% 
        select(-mese, -anno)
@@ -87,10 +94,17 @@ az %>%
        (sanit %>% 
           select(-mese, -anno)
         ), by = "azienda"
-      ) %>% View()
-    
-    
+      ) %>% 
+  mutate(mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+  arrange(time) %>% View()
+
+### non va bene... aziende duplicate.... da ricontrollare
    
+
 
 
 
