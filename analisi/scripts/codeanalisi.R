@@ -50,21 +50,51 @@ sanit <- readRDS(here("analisi", "data", "processed", "sanitaria.RDS"))
 parass <- readRDS(here("analisi", "data", "processed", "parassiti.RDS"))
 diagn <- readRDS(here("analisi", "data", "processed", "diagnostica.RDS"))
 ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS"))
-welfscore <- readRDS(here("analisi", "data", "processed", "welfscore.RDS"))
+
+
+
+ben <- ben %>% 
+  mutate(anno = ifelse(anno == 2017, 2019, anno)) %>% 
+  filter(anno == 2019) 
+
+
+# biosic <- ben  %>% 
+#   select( azienda, biosic) 
+
+
+#welfscore <- readRDS(here("analisi", "data", "processed", "welfscore.RDS"))
 
 #######################################################################################################################
 
-wel <- ben %>% 
-  left_join(welfscore, by= "azienda") %>% 
-  mutate(bencat = cut(complben, quantile(complben), include.lowest = TRUE), 
-         scorecat = cut(score, quantile(score), include.lowest = T))
-
-
-
-table(wel$bencat, wel$scorecat)
+# wel <- ben %>% 
+#   left_join(welfscore, by= "azienda") %>% 
+#   mutate(bencat = cut(complben, quantile(complben), include.lowest = TRUE), 
+#          scorecat = cut(score, quantile(score), include.lowest = T))
+# 
+# 
+# 
+# table(wel$bencat, wel$scorecat)
 
 
 ##azienda##########################
+
+az %>% 
+  left_join(
+    (ben %>% 
+       select(-mese, -anno)
+    ), by = "azienda") %>%  
+      left_join(
+       (sanit %>% 
+          select(-mese, -anno)
+        ), by = "azienda"
+      ) %>% View()
+    
+    
+   
+
+
+
+
 ### uso welfscore####
 prod_latte <- az %>% 
   mutate(azienda=casefold(azienda, upper = TRUE),
@@ -73,15 +103,17 @@ prod_latte <- az %>%
                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
                      ottobre=10, novembre=11,dicembre=12), 
          time=as.Date(paste(anno, mese, 15, sep="-")), 
-         prelievo = anno+mese) %>%
+         prelievo = anno+mese) %>%  
   drop_na(kgcapo) %>% 
   left_join(
     (welfscore %>% 
-       dplyr::select(azienda, score) %>% 
-       mutate(bencat = cut(score, quantile(score), include.lowest = T), 
-              randomvalue = rnorm(nrow(.), 0,1),
-              rcat = cut(randomvalue, quantile(randomvalue), include.lowest = T), 
-       azienda=casefold(azienda, upper = TRUE))), by='azienda') 
+        select(azienda, score) %>% 
+       mutate(
+         # bencat = cut(score, quantile(score), include.lowest = T), 
+         #      randomvalue = rnorm(nrow(.), 0,1),
+         #      rcat = cut(randomvalue, quantile(randomvalue), include.lowest = T), 
+       azienda=casefold(azienda, upper = TRUE))), by='azienda')
+
 
 
 
