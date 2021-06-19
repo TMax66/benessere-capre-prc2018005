@@ -29,32 +29,39 @@ id<-mydrive %>%
   select(id)
 # 
 # # ##preparazione dati#####
-# d1 <-read_sheet(id$id, sheet ="dataset")
-# d2 <-read_sheet(id$id, sheet ="massa")
+d1 <-read_sheet(id$id, sheet ="dataset")
+d2 <-read_sheet(id$id, sheet ="massa")
 d3 <-read_sheet(id$id, sheet ="san" )
 # 
-d3 <- d3 %>%
-  group_by(azienda) %>%
-  mutate(across (4:8,  ~ mean(.x, na.rm = TRUE)))
+# d3 <- d3 %>%
+#   group_by(azienda) %>%
+#   mutate(across (4:8,  ~ mean(.x, na.rm = TRUE))) %>% glimpse()
 
 
 # d4 <-read_sheet(id$id, sheet ="par" )
 # d5 <-read_sheet(id$id, sheet ="diagn" )
-# d6 <-read_sheet(id$id, sheet ="ben" )
+d6 <-read_sheet(id$id, sheet ="ben" )
 # #
-# azienda <- saveRDS(d1, here("analisi", "data", "processed","azienda.RDS"))
+azienda <- saveRDS(d1, here("analisi", "data", "processed","azienda.RDS"))
 # massa <- saveRDS(d2, here("analisi", "data", "processed","massa.RDS"))
 sanitaria <- saveRDS(d3, here("analisi", "data", "processed","sanitaria.RDS"))
 # parassiti <- saveRDS(d4, here("analisi", "data", "processed","parassiti.RDS"))
 # diagnostica <- saveRDS(d5, here("analisi", "data", "processed","diagnostica.RDS"))
-# benessere <- saveRDS(d6, here("analisi", "data", "processed","benessere.RDS"))
+benessere <- saveRDS(d6, here("analisi", "data", "processed","benessere.RDS"))
 
 
 az <- readRDS(here("analisi", "data", "processed", "azienda.RDS"))
-milk <- readRDS(here("analisi", "data", "processed", "massa.RDS"))
+#milk <- readRDS(here("analisi", "data", "processed", "massa.RDS"))
 sanit <- readRDS(here("analisi", "data", "processed", "sanitaria.RDS"))
-parass <- readRDS(here("analisi", "data", "processed", "parassiti.RDS"))
-diagn <- readRDS(here("analisi", "data", "processed", "diagnostica.RDS"))
+
+
+sanit <- sanit %>% 
+  select(- anno, -mese, -c(9:11)) %>% 
+  group_by(azienda) %>%
+   summarise(across (where(is.numeric),   ~ mean(.x, na.rm = TRUE)))  
+
+#parass <- readRDS(here("analisi", "data", "processed", "parassiti.RDS"))
+#diagn <- readRDS(here("analisi", "data", "processed", "diagnostica.RDS"))
 ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS"))
 
 
@@ -89,20 +96,26 @@ df <- az %>%
   left_join(
     (ben %>% 
        select(-mese, -anno)
-    ), by = "azienda") %>%  
+    ), by = "azienda") %>%
       left_join(
-       (sanit %>% 
-          select(-mese, -anno)
-        ), by = "azienda"
+       sanit, by = "azienda"
       ) %>% 
   mutate(mese=recode(mese,
                      gennaio=1,febbraio=2,marzo=3,aprile=4,
                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
                      ottobre=10, novembre=11,dicembre=12), 
          time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-  arrange(time) %>% View()
+  arrange(time) 
 
-### non va bene... aziende duplicate.... da ricontrollare
+
+## specificazione del modello: 
+## outcome: kgcapo
+## predittore: benessere
+## altre varibili : stato sanitario, biosicurezza, dimensione allev, tipologia di lattazione ( lunga/ breve)
+
+
+stato sanitario ( prev intrall di paratbc, caev , mastiti, pseudotub
+##             biosicurezza ( confondente?)
    
 
 
