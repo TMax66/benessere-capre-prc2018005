@@ -37,26 +37,35 @@ t %>% as.data.frame() %>%
 p<-gather_emmeans_draws(t) %>% 
   left_join(
     (dt %>% 
-       select(codice, tipologia, razza)), by = "codice"
+       select(codice, tipologia, razza, positivi)), by = "codice"
   )
 
+library(ggdist)
 p %>%
-mutate("prev"=invlogit(.value))%>%  
-  group_by(codice) %>%
- # filter(tipologia == "semi intensivo") %>% 
-  # summarise(m=mean(prev),
-  #           sd=sd(prev)) 
-  ggplot(aes(x = prev, y=codice, fill = codice)) +
+  mutate(stato = ifelse(positivi == 0, "Allevamenti Negativi", "Allevamenti Positivi")) %>% 
+  filter(stato == "Allevamenti Positivi") %>% 
+  #mutate(provincia = substr(codice, start = 4, stop = 5)) %>%   
+ mutate("prev"=invlogit(.value))%>%   
+  group_by(codice ) %>%
+
+ #  summarise(m=mean(prev),
+ #            sd=sd(prev)) %>%
+ # ggplot(aes(x = codice, dist="norm", arg1 = m, arg2 = sd, fill = codice ))+
+ 
+ 
+  ggplot(aes(x = prev, y=codice, fill = razza)) +
+  stat_halfeye() +
   #geom_density_ridges(panel_scaling=TRUE)+
-  geom_density_ridges_gradient(scale = 10, alpha=0.5)+
-  
+  # geom_density_ridges_gradient(scale = 10, alpha=0.5)+
+  #stat_gradientinterval(position ="dodge", fill_type = "gradient"
+  scale_fill_brewer()+
   theme_ipsum() +
-  theme(
-    legend.position="none",
-    
-    panel.spacing = unit(0.1, "lines"),
-    strip.text.x = element_text(size = 8)
-  ) 
+  labs(x = "prevalenza", y ="Codice Allevamento")
+  
+ 
+  
+  
+
 
 
   
