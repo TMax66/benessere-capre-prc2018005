@@ -9,6 +9,7 @@ library(hrbrthemes)
 
 dt <- read_excel("analisi/data/raw/TabellaTesiLivia.xlsx")
 
+
 library(rstanarm)
 
 mod <- stan_glm(cbind(positivi, (negativi+dubbi)) ~ codice, 
@@ -53,14 +54,18 @@ p %>%
  # ggplot(aes(x = codice, dist="norm", arg1 = m, arg2 = sd, fill = codice ))+
  
  
-  ggplot(aes(x = prev, y=codice, fill = razza)) +
+  ggplot(aes(x = prev, y = fct_reorder(codice, prev), fill = razza)) +
   stat_halfeye() +
   #geom_density_ridges(panel_scaling=TRUE)+
   # geom_density_ridges_gradient(scale = 10, alpha=0.5)+
   #stat_gradientinterval(position ="dodge", fill_type = "gradient"
   scale_fill_brewer()+
   theme_ipsum() +
-  labs(x = "prevalenza", y ="Codice Allevamento")
+  labs(x = "prevalenza", y ="Azienda")+
+  theme(axis.text.y=element_text(size=16),
+        axis.text.x=element_text(size=16), 
+        axis.title.y = element_text(size=16), 
+        axis.title.x = element_text(size=16))
   
  
   
