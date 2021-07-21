@@ -131,6 +131,19 @@ df <- az %>%
 ##             biosicurezza ( confondente?)
    
 
+library(dagitty)
+
+Modello<-dagitty( "dag{ 
+            Benessere -> Produzione
+            Stato_Sanitario -> Benessere
+            Stato_Sanitario -> Produzione
+            Biosicurezza -> Stato_Sanitario
+            Herd_Size -> Produzione
+            Herd_Size -> Biosicurezza
+            Herd_Size -> Stato_Sanitario
+            Tipo_Lattazione -> Produzione
+                     }")
+plot(graphLayout(Modello))
 
 -------------------------------------------------------------------------------
 #Old Stuff----------
