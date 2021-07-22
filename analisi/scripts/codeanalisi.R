@@ -16,81 +16,54 @@ options(scipen = 999)
 #precedente... la cartella .secrets deve essere inserita tra i documenti da mettere nel deploy per le applicazioni shiny
  
 
-#Accesso a googlesheet----------------------------------------------
-
-options(
-  gargle_oauth_cache = ".secrets",
-  gargle_oauth_email = TRUE
-)
-drive_auth()
-gs4_auth(token = drive_token())
-mydrive<-drive_find(type = "spreadsheet")
-id<-mydrive %>%
- filter(name=="prc2018005") %>%
-  select(id)
----------------------------------------------------------------------
-#Preparazione dati----------------------------------------------------
-d1 <-read_sheet(id$id, sheet ="dataset")
-d2 <-read_sheet(id$id, sheet ="massa")
-d3 <-read_sheet(id$id, sheet ="san" )
+# #Accesso a googlesheet----------------------------------------------
 # 
-# d3 <- d3 %>%
-#   group_by(azienda) %>%
-#   mutate(across (4:8,  ~ mean(.x, na.rm = TRUE))) %>% glimpse()
+# options(
+#   gargle_oauth_cache = ".secrets",
+#   gargle_oauth_email = TRUE
+# )
+# drive_auth()
+# gs4_auth(token = drive_token())
+# mydrive<-drive_find(type = "spreadsheet")
+# id<-mydrive %>%
+#  filter(name=="prc2018005") %>%
+#   select(id)
+ 
+#Preparazione dati----------------------------------------------------
+# d1 <-read_sheet(id$id, sheet ="dataset")
+# d2 <-read_sheet(id$id, sheet ="massa")
+# d3 <-read_sheet(id$id, sheet ="san" )
+# # 
+# # d3 <- d3 %>%
+# #   group_by(azienda) %>%
+# #   mutate(across (4:8,  ~ mean(.x, na.rm = TRUE))) %>% glimpse()
+# 
+# 
+# # d4 <-read_sheet(id$id, sheet ="par" )
+# # d5 <-read_sheet(id$id, sheet ="diagn" )
+# d6 <-read_sheet(id$id, sheet ="ben" )
+# # #
+# azienda <- saveRDS(d1, here("analisi", "data", "processed","azienda.RDS"))
+# # massa <- saveRDS(d2, here("analisi", "data", "processed","massa.RDS"))
+# sanitaria <- saveRDS(d3, here("analisi", "data", "processed","sanitaria.RDS"))
+# # parassiti <- saveRDS(d4, here("analisi", "data", "processed","parassiti.RDS"))
+# # diagnostica <- saveRDS(d5, here("analisi", "data", "processed","diagnostica.RDS"))
+# benessere <- saveRDS(d6, here("analisi", "data", "processed","benessere.RDS"))
 
 
-# d4 <-read_sheet(id$id, sheet ="par" )
-# d5 <-read_sheet(id$id, sheet ="diagn" )
-d6 <-read_sheet(id$id, sheet ="ben" )
-# #
-azienda <- saveRDS(d1, here("analisi", "data", "processed","azienda.RDS"))
-# massa <- saveRDS(d2, here("analisi", "data", "processed","massa.RDS"))
-sanitaria <- saveRDS(d3, here("analisi", "data", "processed","sanitaria.RDS"))
-# parassiti <- saveRDS(d4, here("analisi", "data", "processed","parassiti.RDS"))
-# diagnostica <- saveRDS(d5, here("analisi", "data", "processed","diagnostica.RDS"))
-benessere <- saveRDS(d6, here("analisi", "data", "processed","benessere.RDS"))
-
-
+#Acquisizione dati rds----
 az <- readRDS(here("analisi", "data", "processed", "azienda.RDS"))
-#milk <- readRDS(here("analisi", "data", "processed", "massa.RDS"))
 sanit <- readRDS(here("analisi", "data", "processed", "sanitaria.RDS"))
-
-
 sanit <- sanit %>% 
   select(- anno, -mese, -c(9:11)) %>% 
   group_by(azienda) %>%
    summarise(across (where(is.numeric),   ~ mean(.x, na.rm = TRUE)))  
-
-#parass <- readRDS(here("analisi", "data", "processed", "parassiti.RDS"))
-#diagn <- readRDS(here("analisi", "data", "processed", "diagnostica.RDS"))
 ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS"))
-
-
-lattazione <- read_excel("analisi/data/raw/LattazioneAziende.xlsx")
-
-
 ben <- ben %>% 
   mutate(anno = ifelse(anno == 2017, 2019, anno)) %>% 
   filter(anno == 2019) 
-
-
-
-
-# biosic <- ben  %>% 
-#   select( azienda, biosic) 
-
-
 welfscore <- readRDS(here("analisi", "data", "processed", "welfscore.RDS"))
-
-
-# wel <- ben %>% 
-#   left_join(welfscore, by= "azienda") %>% 
-#   mutate(bencat = cut(complben, quantile(complben), include.lowest = TRUE), 
-#          scorecat = cut(score, quantile(score), include.lowest = T))
-# 
-# 
-# 
-# table(wel$bencat, wel$scorecat)
+lattazione <- read_excel("analisi/data/raw/LattazioneAziende.xlsx")
 
 
 #DATSET PER ANALISI---------------------------------------
@@ -132,6 +105,7 @@ df <- az %>%
    
 
 library(dagitty)
+library(ggdag)
 
 Modello<-dagitty( "dag{ 
             Benessere -> Produzione
@@ -142,11 +116,70 @@ Modello<-dagitty( "dag{
             Herd_Size -> Biosicurezza
             Herd_Size -> Stato_Sanitario
             Tipo_Lattazione -> Produzione
+            Time -> Produzione
+            Time -> Tipo_Lattazione
                      }")
 plot(graphLayout(Modello))
 
+exposures(Modello) <- c("Benessere")
+outcomes(Modello) <- c("Produzione")
+
+
+DAG <- tidy_dagitty(Modello)
+
+ggdag_parents(DAG, "Benessere", text_col = "black")
+ggdag_children(DAG, "Produzione", text_col = "black")
+
+ggdag_adjustment_set(DAG)+theme_dag()
+
+
+
+
+
+
+dag <- dagify(Produzione~Benessere+Stato_Sanitario + Herd_Size+ Lattazione+ Tempo + Razza, 
+              
+              Benessere~Stato_Sanitario, 
+              Stato_Sanitario~Herd_Size, 
+              Stato_Sanitario~Biosicurezza,
+              Biosicurezza~Herd_Size, 
+              Lattazione~Tempo, 
+              Stato_Sanitario~Razza, 
+              
+              
+              
+              exposure =  "Benessere", 
+              outcome = "Produzione", 
+              latent = "Razza", 
+              
+              labels = c("Produzione" = "Produzione", 
+                         "Benessere" = "Benessere", 
+                         "Stato_Sanitario" = "Stato\n Sanitario", 
+                         "Lattazione" = "Lattazione", 
+                         "Biosicurezza"= "Biosicurezza", 
+                         "Herd_Size"= "Herd\n Size", 
+                         "Tempo" = "Tempo", 
+                         "Razza" = "Razza")
+              
+              )
+
+
+
+ggdag(dag, text = FALSE, use_labels = "label")
+ggdag_adjustment_set(dag)+theme_dag()
+
 -------------------------------------------------------------------------------
 #Old Stuff----------
+
+# wel <- ben %>% 
+#   left_join(welfscore, by= "azienda") %>% 
+#   mutate(bencat = cut(complben, quantile(complben), include.lowest = TRUE), 
+#          scorecat = cut(score, quantile(score), include.lowest = T))
+# 
+# 
+# 
+# table(wel$bencat, wel$scorecat)
+
 
 # prod_latte <- az %>% 
 #   mutate(azienda=casefold(azienda, upper = TRUE),
