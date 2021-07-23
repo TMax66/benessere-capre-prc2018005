@@ -107,31 +107,31 @@ df <- az %>%
 library(dagitty)
 library(ggdag)
 
-Modello<-dagitty( "dag{ 
-            Benessere -> Produzione
-            Stato_Sanitario -> Benessere
-            Stato_Sanitario -> Produzione
-            Biosicurezza -> Stato_Sanitario
-            Herd_Size -> Produzione
-            Herd_Size -> Biosicurezza
-            Herd_Size -> Stato_Sanitario
-            Tipo_Lattazione -> Produzione
-            Time -> Produzione
-            Time -> Tipo_Lattazione
-                     }")
-plot(graphLayout(Modello))
-
-exposures(Modello) <- c("Benessere")
-outcomes(Modello) <- c("Produzione")
-
-
-DAG <- tidy_dagitty(Modello)
-
-ggdag_parents(DAG, "Benessere", text_col = "black")
-ggdag_children(DAG, "Produzione", text_col = "black")
-
-ggdag_adjustment_set(DAG)+theme_dag()
-
+# Modello<-dagitty( "dag{ 
+#             Benessere -> Produzione
+#             Stato_Sanitario -> Benessere
+#             Stato_Sanitario -> Produzione
+#             Biosicurezza -> Stato_Sanitario
+#             Herd_Size -> Produzione
+#             Herd_Size -> Biosicurezza
+#             Herd_Size -> Stato_Sanitario
+#             Tipo_Lattazione -> Produzione
+#             Time -> Produzione
+#             Time -> Tipo_Lattazione
+#                      }")
+# plot(graphLayout(Modello))
+# 
+# exposures(Modello) <- c("Benessere")
+# outcomes(Modello) <- c("Produzione")
+# 
+# 
+# DAG <- tidy_dagitty(Modello)
+# 
+# ggdag_parents(DAG, "Benessere", text_col = "black")
+# ggdag_children(DAG, "Produzione", text_col = "black")
+# 
+# ggdag_adjustment_set(DAG)+theme_dag()
+# 
 
 
 
@@ -166,7 +166,14 @@ dag <- dagify(Produzione~Benessere+Stato_Sanitario + Herd_Size+ Lattazione+ Temp
 
 
 ggdag(dag, text = FALSE, use_labels = "label")
+
+ggdag_paths(dag, text = FALSE, use_labels = "label", shadow = TRUE)
+
+
 ggdag_adjustment_set(dag)+theme_dag()
+
+ggdag_dseparated(dag, controlling_for = c("Biosicurezza"), 
+                 text = FALSE, use_labels = "label", collider_lines = FALSE)
 
 -------------------------------------------------------------------------------
 #Old Stuff----------
