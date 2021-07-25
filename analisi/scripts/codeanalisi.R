@@ -1,105 +1,9 @@
-library("tidyverse")
-library("DT")
-library("googledrive")
-library("googlesheets4")
-library("lubridate")
-library("here")
-library("hrbrthemes")
-library(readxl)
-options(scipen = 999)
-
-#codici per ottenere l'autorizzazione al drive di google da fare una sola volta###
-# options(gargle_oauth_cache = ".secrets")
-# gargle::gargle_oauth_cache()
-# drive_auth()
-# list.files(".secrets/")#<---questo codice fa solo vedere il file presente nella cartella .secrets creata dal codice
-#precedente... la cartella .secrets deve essere inserita tra i documenti da mettere nel deploy per le applicazioni shiny
- 
-
-# #Accesso a googlesheet----------------------------------------------
-# 
-# options(
-#   gargle_oauth_cache = ".secrets",
-#   gargle_oauth_email = TRUE
-# )
-# drive_auth()
-# gs4_auth(token = drive_token())
-# mydrive<-drive_find(type = "spreadsheet")
-# id<-mydrive %>%
-#  filter(name=="prc2018005") %>%
-#   select(id)
- 
-#Preparazione dati----------------------------------------------------
-# d1 <-read_sheet(id$id, sheet ="dataset")
-# d2 <-read_sheet(id$id, sheet ="massa")
-# d3 <-read_sheet(id$id, sheet ="san" )
-# # 
-# # d3 <- d3 %>%
-# #   group_by(azienda) %>%
-# #   mutate(across (4:8,  ~ mean(.x, na.rm = TRUE))) %>% glimpse()
-# 
-# 
-# # d4 <-read_sheet(id$id, sheet ="par" )
-# # d5 <-read_sheet(id$id, sheet ="diagn" )
-# d6 <-read_sheet(id$id, sheet ="ben" )
-# # #
-# azienda <- saveRDS(d1, here("analisi", "data", "processed","azienda.RDS"))
-# # massa <- saveRDS(d2, here("analisi", "data", "processed","massa.RDS"))
-# sanitaria <- saveRDS(d3, here("analisi", "data", "processed","sanitaria.RDS"))
-# # parassiti <- saveRDS(d4, here("analisi", "data", "processed","parassiti.RDS"))
-# # diagnostica <- saveRDS(d5, here("analisi", "data", "processed","diagnostica.RDS"))
-# benessere <- saveRDS(d6, here("analisi", "data", "processed","benessere.RDS"))
-
-
-#Acquisizione dati rds----
-az <- readRDS(here("analisi", "data", "processed", "azienda.RDS"))
-sanit <- readRDS(here("analisi", "data", "processed", "sanitaria.RDS"))
-sanit <- sanit %>% 
-  select(- anno, -mese, -c(9:11)) %>% 
-  group_by(azienda) %>%
-   summarise(across (where(is.numeric),   ~ mean(.x, na.rm = TRUE)))  
-ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS"))
-ben <- ben %>% 
-  mutate(anno = ifelse(anno == 2017, 2019, anno)) %>% 
-  filter(anno == 2019) 
-welfscore <- readRDS(here("analisi", "data", "processed", "welfscore.RDS"))
-lattazione <- read_excel("analisi/data/raw/LattazioneAziende.xlsx")
-
-
-#DATSET PER ANALISI---------------------------------------
-
-df <- az %>% 
-  left_join(
-    (ben %>% 
-       select(-mese, -anno)
-    ), by = "azienda") %>%
-      left_join(
-       sanit, by = "azienda"
-      ) %>% 
-  mutate(mese=recode(mese,
-                     gennaio=1,febbraio=2,marzo=3,aprile=4,
-                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                     ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-  arrange(time) %>% 
-  left_join(
-    (lattazione %>% 
-       mutate(azienda = str_to_lower(azienda))), 
-    by = "azienda"
-  ) %>% 
-  
-    left_join(
-      (welfscore %>% 
-         select(azienda, score)), 
-      by = "azienda")
-
-
+source("analisi/scripts/start.R")
+#Modello----
 ## specificazione del modello: 
 ## outcome: kgcapo
 ## predittore: benessere
 ## altre varibili : stato sanitario, biosicurezza, dimensione allev, tipologia di lattazione ( lunga/ breve)
-
-
 #stato sanitario ( prev intrall di paratbc, caev , mastiti, pseudotub
 ##             biosicurezza ( confondente?)
    
@@ -107,72 +11,43 @@ df <- az %>%
 library(dagitty)
 library(ggdag)
 
-# Modello<-dagitty( "dag{ 
-#             Benessere -> Produzione
-#             Stato_Sanitario -> Benessere
-#             Stato_Sanitario -> Produzione
-#             Biosicurezza -> Stato_Sanitario
-#             Herd_Size -> Produzione
-#             Herd_Size -> Biosicurezza
-#             Herd_Size -> Stato_Sanitario
-#             Tipo_Lattazione -> Produzione
-#             Time -> Produzione
-#             Time -> Tipo_Lattazione
-#                      }")
-# plot(graphLayout(Modello))
-# 
-# exposures(Modello) <- c("Benessere")
-# outcomes(Modello) <- c("Produzione")
-# 
-# 
-# DAG <- tidy_dagitty(Modello)
-# 
-# ggdag_parents(DAG, "Benessere", text_col = "black")
-# ggdag_children(DAG, "Produzione", text_col = "black")
-# 
-# ggdag_adjustment_set(DAG)+theme_dag()
-# 
-
-
-
-
-
-dag <- dagify(Produzione~Benessere+Stato_Sanitario + Herd_Size+ Lattazione+ Tempo + Razza, 
+dag <- dagify(Produzione~Benessere+Stato_Sanitario, #+ Herd_Size+ Lattazione+ Tempo + Razza, 
               
               Benessere~Stato_Sanitario, 
-              Stato_Sanitario~Herd_Size, 
-              Stato_Sanitario~Biosicurezza,
-              Biosicurezza~Herd_Size, 
-              Lattazione~Tempo, 
-              Stato_Sanitario~Razza, 
+              # Stato_Sanitario~Herd_Size, 
+              # Stato_Sanitario~Biosicurezza,
+              # Biosicurezza~Herd_Size, 
+              # Lattazione~Tempo, 
+              # Stato_Sanitario~Razza, 
               
               
               
               exposure =  "Benessere", 
               outcome = "Produzione", 
-              latent = "Razza", 
+             # latent = "Razza", 
               
               labels = c("Produzione" = "Produzione", 
                          "Benessere" = "Benessere", 
-                         "Stato_Sanitario" = "Stato\n Sanitario", 
-                         "Lattazione" = "Lattazione", 
-                         "Biosicurezza"= "Biosicurezza", 
-                         "Herd_Size"= "Herd\n Size", 
-                         "Tempo" = "Tempo", 
-                         "Razza" = "Razza")
+                         "Stato_Sanitario" = "Stato\n Sanitario")
+                         # "Lattazione" = "Lattazione", 
+                         # "Biosicurezza"= "Biosicurezza", 
+                         # "Herd_Size"= "Herd\n Size", 
+                         # "Tempo" = "Tempo", 
+                         # "Razza" = "Razza")
               
               )
 
 
 
-ggdag(dag, text = FALSE, use_labels = "label")
+ggdag(dag, text = FALSE, use_labels = "label", node_size = 3)
 
+ggdag_exogenous(dag)
 ggdag_paths(dag, text = FALSE, use_labels = "label", shadow = TRUE)
 
 
 ggdag_adjustment_set(dag)+theme_dag()
 
-ggdag_dseparated(dag, controlling_for = c("Biosicurezza"), 
+ggdag_dseparated(dag, controlling_for = c("Lattazione"), 
                  text = FALSE, use_labels = "label", collider_lines = FALSE)
 
 -------------------------------------------------------------------------------
