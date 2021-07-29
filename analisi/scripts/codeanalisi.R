@@ -11,44 +11,50 @@ source("analisi/scripts/start.R")
 library(dagitty)
 library(ggdag)
 
-dag <- dagify(Produzione~Benessere+Stato_Sanitario, #+ Herd_Size+ Lattazione+ Tempo + Razza, 
+dag <- dagify(Produzione~Benessere+Stato_Sanitario + Herd_Size+ Lattazione+ Tempo + Razza, 
               
               Benessere~Stato_Sanitario, 
-              # Stato_Sanitario~Herd_Size, 
-              # Stato_Sanitario~Biosicurezza,
-              # Biosicurezza~Herd_Size, 
-              # Lattazione~Tempo, 
-              # Stato_Sanitario~Razza, 
+              Stato_Sanitario~Herd_Size, 
+              Stato_Sanitario~Biosicurezza,
+              Biosicurezza~Herd_Size, 
+              Lattazione~Tempo, 
+              Stato_Sanitario~Razza, 
               
               
               
               exposure =  "Benessere", 
               outcome = "Produzione", 
-             # latent = "Razza", 
+              latent = "Razza", 
               
               labels = c("Produzione" = "Produzione", 
                          "Benessere" = "Benessere", 
-                         "Stato_Sanitario" = "Stato\n Sanitario")
-                         # "Lattazione" = "Lattazione", 
-                         # "Biosicurezza"= "Biosicurezza", 
-                         # "Herd_Size"= "Herd\n Size", 
-                         # "Tempo" = "Tempo", 
-                         # "Razza" = "Razza")
+                         "Stato_Sanitario" = "Stato\n Sanitario",
+                         "Lattazione" = "Lattazione", 
+                         "Biosicurezza"= "Biosicurezza",
+                         "Herd_Size"= "Herd\n Size", 
+                         "Tempo" = "Tempo", 
+                         "Razza" = "Razza"
               
               )
+)
 
 
 
-ggdag(dag, text = FALSE, use_labels = "label", node_size = 3)
+ggdag(dag, text_col = "blue",  node_size = 1)+
+  theme_dag_grid()
 
 ggdag_exogenous(dag)
-ggdag_paths(dag, text = FALSE, use_labels = "label", shadow = TRUE)
+ggdag_paths(dag, text = FALSE, use_labels = "label", shadow = TRUE)+
+  theme_dag_grid()
 
 
-ggdag_adjustment_set(dag)+theme_dag()
+ggdag_adjustment_set(dag, text_col = "blue")+  theme_dag_grid()
 
-ggdag_dseparated(dag, controlling_for = c("Lattazione"), 
-                 text = FALSE, use_labels = "label", collider_lines = FALSE)
+ggdag_dseparated(dag, controlling_for = c("Biosicurezza"), 
+                 text_col = "blue", collider_lines = FALSE)+theme_dag_grid()
+
+
+
 
 -------------------------------------------------------------------------------
 #Old Stuff----------
