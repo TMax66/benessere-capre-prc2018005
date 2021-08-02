@@ -1,5 +1,5 @@
 source("analisi/scripts/start.R")
-#Modello----
+#Modello DAG ----
 ## specificazione del modello: 
 ## outcome: kgcapo
 ## predittore: benessere
@@ -20,8 +20,6 @@ dag <- dagify(Produzione~Benessere+Stato_Sanitario + Herd_Size+ Lattazione+ Temp
               Lattazione~Tempo, 
               Stato_Sanitario~Razza, 
               
-              
-              
               exposure =  "Benessere", 
               outcome = "Produzione", 
               latent = "Razza", 
@@ -38,7 +36,7 @@ dag <- dagify(Produzione~Benessere+Stato_Sanitario + Herd_Size+ Lattazione+ Temp
               )
 )
 
-
+adjustmentSets(dag)
 
 ggdag(dag, text_col = "blue",  node_size = 1)+
   theme_dag_grid()
@@ -52,6 +50,92 @@ ggdag_adjustment_set(dag, text_col = "blue")+  theme_dag_grid()
 
 ggdag_dseparated(dag, controlling_for = c("Biosicurezza"), 
                  text_col = "blue", collider_lines = FALSE)+theme_dag_grid()
+
+
+
+
+
+##Modello nullo----
+library(brms)
+library(bayestestR)
+library(see)
+
+
+df <- df %>% 
+  mutate(Time = factor(paste(anno, ".", mese)), 
+         Welfare = scale(complben), 
+         Biosic = scale(biosic), 
+         para = scale(`paratbc(%)`), 
+         agal = scale(`agalassia(%)`))
+  
+  
+
+
+mod_bayes <- function(var){
+  
+  m <- brm(kgcapo ~ Time+  (1|azienda)+para, 
+      data = df, family = gaussian)
+  pdir <- pd(m, parameters = c(  "para"))
+  plot(pdir)
+  
+}
+
+
+
+mod_bayes( var = "para")
+
+
+mod <- brm(kgcapo ~ Time+ Welfare+(1|azienda), 
+            data = df, family = gaussian)
+  
+plot(equivalence_test(mod0))
+
+pd <- p_direction(mod, parameters = "Welfare")
+plot(pd)+scale_fill_brewer(palette="Blues")+
+  theme_ipsum_rc()
+
+
+mod1 <- brm(kgcapo ~ Time+ Welfare+ Biosic+(1|azienda), 
+            data = df, family = gaussian)
+pd <- p_direction(mod1, parameters = c("Welfare", "Biosic"))
+plot(pd)+scale_fill_brewer(palette="Blues")+
+  theme_ipsum_rc()
+
+loo(mod, mod1, moment_match = TRUE)
+
+kfm <- kfold(mod, K=10)
+kfm2 <- kfold(mod1, K=10)
+
+kf <- loo_compare(kfm, kfm2)
+pp_check(mod1)
+pp_check(mod)
+
+
+mod.W <- brm(Welfare ~ Time+  Biosic+(1|azienda), 
+            data = df, family = gaussian)
+
+plot(pd(mod.W))
+
+
+
+
+
+
+
+
+# mod_score <- brm(kgcapo ~ Time+score+(1|azienda), 
+#            data = df, family = gaussian)
+# 
+# pd <- p_direction(mod_score, parameters = "score")
+# plot(pd)+scale_fill_brewer(palette="Blues")+
+#   theme_ipsum_rc()
+# 
+# mod_score1 <- brm(kgcapo ~ Time+score+ Biosic+(1|azienda), 
+#                  data = df, family = gaussian)
+# 
+# pd <- p_direction(mod_score1, parameters = c("score", "Biosic"))
+# plot(pd)+scale_fill_brewer(palette="Blues")+
+#   theme_ipsum_rc()
 
 
 
