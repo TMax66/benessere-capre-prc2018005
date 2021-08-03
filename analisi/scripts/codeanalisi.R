@@ -11,12 +11,12 @@ source("analisi/scripts/start.R")
 library(dagitty)
 library(ggdag)
 
-dag <- dagify(Produzione~Benessere+Stato_Sanitario + Herd_Size+ Lattazione+ Tempo + Razza, 
+dag <- dagify(Produzione~Benessere+Stato_Sanitario +  Lattazione+ Tempo + Razza, 
               
-              Benessere~Stato_Sanitario, 
+                
               Stato_Sanitario~Herd_Size, 
               Stato_Sanitario~Biosicurezza,
-              Biosicurezza~Herd_Size, 
+               
               Lattazione~Tempo, 
               Stato_Sanitario~Razza, 
               
@@ -36,6 +36,8 @@ dag <- dagify(Produzione~Benessere+Stato_Sanitario + Herd_Size+ Lattazione+ Temp
               )
 )
 
+dag %>% dseparated("Biosicurezza",  "Produzione")
+
 adjustmentSets(dag)
 
 ggdag(dag, text_col = "blue",  node_size = 1)+
@@ -53,6 +55,9 @@ ggdag_dseparated(dag, controlling_for = c("Biosicurezza"),
 
 
 
+dag <- dagify(Stato_Sanitario~Biosicurezza,
+              Produzione ~ Stato_Sanitario+Benessere
+              )
 
 
 ##Modello nullo----
@@ -66,31 +71,28 @@ df <- df %>%
          Welfare = scale(complben), 
          Biosic = scale(biosic), 
          para = scale(`paratbc(%)`), 
-         agal = scale(`agalassia(%)`))
+         agal = scale(`agalassia(%)`), 
+         caev = scale(`caev(%)`), 
+         hsize = scale(caprelatt))
   
   
 
 
-mod_bayes <- function(var){
-  
-  m <- brm(kgcapo ~ Time+  (1|azienda)+para, 
-      data = df, family = gaussian)
-  pdir <- pd(m, parameters = c(  "para"))
-  plot(pdir)
-  
-}
+ 
+m <- brm(kgcapo ~ Welfare+Biosic+Time+ LATTAZIONE+hsize+DESTAGIONALIZZAZIONE+(1|azienda), 
+         data = df, family = gaussian)
+
+
+m1 <- brm(kgcapo ~ Welfare+hsize+Time+(1|azienda), 
+         data = df, family = gaussian, 
+         iter = 8000, cores = getOption("mc.cores", 8))
 
 
 
-mod_bayes( var = "para")
+ 
+#plot(equivalence_test(m))
 
-
-mod <- brm(kgcapo ~ Time+ Welfare+(1|azienda), 
-            data = df, family = gaussian)
-  
-plot(equivalence_test(mod0))
-
-pd <- p_direction(mod, parameters = "Welfare")
+pd <- p_direction(m1, parameters = c("Welfare", "hsize" ))
 plot(pd)+scale_fill_brewer(palette="Blues")+
   theme_ipsum_rc()
 
