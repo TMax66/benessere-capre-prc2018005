@@ -73,33 +73,37 @@ df <- df %>%
          para = scale(`paratbc(%)`), 
          agal = scale(`agalassia(%)`), 
          caev = scale(`caev(%)`), 
-         hsize = scale(caprelatt))
+         hsize = scale(caprelatt), 
+         WScore = scale(score)) %>% 
+  na.omit()
+  
   
   
 
 
  
-m <- brm(kgcapo ~ Welfare+Biosic+Time+ LATTAZIONE+hsize+DESTAGIONALIZZAZIONE+(1|azienda), 
+m0 <- brm(kgcapo ~ Welfare+(1|azienda), 
          data = df, family = gaussian)
+m1 <- brm(kgcapo ~ Welfare+hsize+(1|azienda), 
+          data = df, family = gaussian)
 
 
-m1 <- brm(kgcapo ~ Welfare+hsize+Time+(1|azienda), 
+
+kfm <- kfold(m0, K=10)
+kfm1 <- kfold(m1, K=10)
+
+kf <- loo_compare(kfm, kfm1)
+
+m1 <- brm(kgcapo ~  Welfare+hsize+Time+LATTAZIONE+DESTAGIONALIZZAZIONE+Biosic+para+caev+agal+(1|azienda), 
          data = df, family = gaussian, 
          iter = 8000, cores = getOption("mc.cores", 8))
 
 
+pd <- p_direction(m1, parameters = c( "Welfare", "Biosic", "hsize", "LATTAZIONE", "DESTAGIONALIZZAZIONE", "para", "caev", "agal"))
 
- 
-#plot(equivalence_test(m))
-
-pd <- p_direction(m1, parameters = c("Welfare", "hsize" ))
-plot(pd)+scale_fill_brewer(palette="Blues")+
-  theme_ipsum_rc()
+pd <- p_direction(m1)
 
 
-mod1 <- brm(kgcapo ~ Time+ Welfare+ Biosic+(1|azienda), 
-            data = df, family = gaussian)
-pd <- p_direction(mod1, parameters = c("Welfare", "Biosic"))
 plot(pd)+scale_fill_brewer(palette="Blues")+
   theme_ipsum_rc()
 
