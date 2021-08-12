@@ -74,47 +74,51 @@ df <- df %>%
          agal = scale(`agalassia(%)`), 
          caev = scale(`caev(%)`), 
          hsize = scale(caprelatt), 
-         WScore = scale(score)) %>% 
-  na.omit()
+         WScore = scale(score)) 
+  
+####grafico----
+df %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  
+  drop_na(kgcapo) %>% 
+  ggplot(aes(x=time, y = kgcapo))+  
+  #facet_wrap(bencat~., nrow = 1) + 
+  stat_smooth()+
+  geom_line(aes(x=time, y = kgcapo, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  theme_ipsum_rc()
   
   
-  
-
-
  
-m0 <- brm(kgcapo ~ Welfare+(1|azienda), 
-         data = df, family = gaussian)
-m1 <- brm(kgcapo ~ Welfare+hsize+(1|azienda), 
-          data = df, family = gaussian)
 
-
-
-kfm <- kfold(m0, K=10)
-kfm1 <- kfold(m1, K=10)
-
-kf <- loo_compare(kfm, kfm1)
-
-m1 <- brm(kgcapo ~  Welfare+hsize+Time+LATTAZIONE+DESTAGIONALIZZAZIONE+Biosic+para+caev+agal+(1|azienda), 
+model <- brm(kgcapo ~  Welfare+hsize+Time+LATTAZIONE+Biosic+para+caev+agal+(1|azienda), 
          data = df, family = gaussian, 
          iter = 8000, cores = getOption("mc.cores", 8))
 
 
-pd <- p_direction(m1, parameters = c( "Welfare", "Biosic", "hsize", "LATTAZIONE", "DESTAGIONALIZZAZIONE", "para", "caev", "agal"))
+pd <- p_direction(model, parameters = c( "Welfare", "Biosic", "hsize", "LATTAZIONE",  "para", "caev", "agal"))
 
-pd <- p_direction(m1)
+pd <- p_direction(model)
 
 
 plot(pd)+scale_fill_brewer(palette="Blues")+
   theme_ipsum_rc()
 
-loo(mod, mod1, moment_match = TRUE)
+loo(model, moment_match = TRUE)
 
 kfm <- kfold(mod, K=10)
 kfm2 <- kfold(mod1, K=10)
 
 kf <- loo_compare(kfm, kfm2)
-pp_check(mod1)
+pp_check(model)
 pp_check(mod)
+
+stanplot(model)
+library(parameters)
+model_parameters(model, effects= "fixed")
 
 
 mod.W <- brm(Welfare ~ Time+  Biosic+(1|azienda), 
