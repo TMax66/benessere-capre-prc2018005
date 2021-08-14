@@ -19,19 +19,22 @@ mod <- stan_glm(cbind(positivi, (negativi+dubbi)) ~ codice,
 
 
 library(emmeans)
-library(knitr)
-library(kableExtra)
+# library(knitr)
+# library(kableExtra)
+library(xtable)
 
 t<-emmeans(mod, ~codice)
 
-t %>% as.data.frame() %>%  
-  mutate(emmean=invlogit(emmean),
-             lower.HPD = invlogit(lower.HPD),
-             upper.HPD = invlogit(upper.HPD)) %>%
+tt <- t %>% as.data.frame() %>%  
+  mutate(emmean=round(invlogit(emmean),2),
+             lower.HPD = round(invlogit(lower.HPD),2),
+             upper.HPD = round(invlogit(upper.HPD),2)) %>%
   select("Azienda" = codice, "Prevalenza"=emmean, "HPD-inf"= lower.HPD, "HPD-sup"= upper.HPD ) %>%
-  arrange(desc(Prevalenza))  %>% 
-  kbl() %>% 
-  kable_styling()
+  arrange(desc(Prevalenza))   
+   
+  print(xtable(tt), type = "html", file = "tt.html")
+# kbl() %>% 
+  # kable_styling()
   
   
   
@@ -55,7 +58,7 @@ p %>%
  
  
   ggplot(aes(x = prev, y = fct_reorder(codice, prev), fill = razza)) +
-  stat_halfeye() +
+  stat_halfeye(.width = c(0.66, 0.95) ) +
   #geom_density_ridges(panel_scaling=TRUE)+
   # geom_density_ridges_gradient(scale = 10, alpha=0.5)+
   #stat_gradientinterval(position ="dodge", fill_type = "gradient"
@@ -66,6 +69,7 @@ p %>%
         axis.text.x=element_text(size=16), 
         axis.title.y = element_text(size=16), 
         axis.title.x = element_text(size=16))
+  
   
  
   
