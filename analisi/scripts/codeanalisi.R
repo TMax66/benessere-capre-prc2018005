@@ -7,7 +7,6 @@ source("analisi/scripts/start.R")
 #stato sanitario ( prev intrall di paratbc, caev , mastiti, pseudotub
 ##             biosicurezza ( confondente?)
    
-
 library(dagitty)
 library(ggdag)
 
@@ -60,7 +59,7 @@ dag <- dagify(Stato_Sanitario~Biosicurezza,
               )
 
 
-##Modello nullo----
+#Modello nullo----
 library(brms)
 library(bayestestR)
 library(see)
@@ -90,8 +89,17 @@ df %>%
   stat_smooth()+
   geom_line(aes(x=time, y = kgcapo, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
   theme_ipsum_rc()
-  
-  
+
+
+M0 <- brm(kgcapo~1,
+          data = df, family = gaussian, 
+          iter = 8000, cores = 8, seed = 1966)
+M1 <- brm(kgcapo~(1|azienda),
+          data = df, family = gaussian, 
+          iter = 8000, cores = 8, seed = 1966)
+M2 <- brm(kgcapo~(1|azienda)+(1|Time),
+          data = df, family = gaussian, 
+          iter = 8000, cores = 8, seed = 1966)
  
 
 model <- brm(kgcapo ~  Welfare+hsize+Time+LATTAZIONE+Biosic+para+caev+agal+(1|azienda), 
