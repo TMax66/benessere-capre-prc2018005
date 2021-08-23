@@ -64,43 +64,91 @@ library(brms)
 library(bayestestR)
 library(see)
 
-
 df <- df %>% 
-  mutate(Time = factor(paste(anno, ".", mese)), 
+  mutate(Time = factor(paste(anno,mese)), 
+         Time2 = factor(Time, levels = c(
+                         "2019 1", "2019 2",  "2019 3","2019 4", "2019 5", "2019 6", "2019 7", "2019 8", 
+                         "2019 9", "2019 10",  "2019 11",  "2019 12", 
+                         "2020 1" ,  "2020 2" , "2020 3", "2020 4", "2020 5", "2020 6", "2020 7", "2020 8",
+                         "2020 9", "2020 10",  "2020 11",  "2020 12")
+                       ),
+         Occasion = as.numeric(Time2), 
          Welfare = scale(complben), 
          Biosic = scale(biosic), 
          para = scale(`paratbc(%)`), 
          agal = scale(`agalassia(%)`), 
          caev = scale(`caev(%)`), 
          hsize = scale(caprelatt), 
-         WScore = scale(score)) 
+         WScore = scale(score)) %>% 
+  select(azienda, Time2, Welfare,  Occasion,  kgcapo)
   
 ####grafico----
 df %>% 
-  mutate(azienda=casefold(azienda, upper = TRUE),
-         mese=recode(mese,
-                     gennaio=1,febbraio=2,marzo=3,aprile=4,
-                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                     ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  
+  mutate(azienda=casefold(azienda, upper = TRUE)) %>% 
   drop_na(kgcapo) %>% 
-  ggplot(aes(x=time, y = kgcapo))+  
+  ggplot(aes(x=Occasion, y = kgcapo))+  
   #facet_wrap(bencat~., nrow = 1) + 
   stat_smooth()+
-  geom_line(aes(x=time, y = kgcapo, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
+  geom_line(aes(x=Occasion, y = kgcapo, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
   theme_ipsum_rc()
 
-
+##modelli----
 M0 <- brm(kgcapo~1,
           data = df, family = gaussian, 
           iter = 8000, cores = 8, seed = 1966)
 M1 <- brm(kgcapo~(1|azienda),
           data = df, family = gaussian, 
           iter = 8000, cores = 8, seed = 1966)
-M2 <- brm(kgcapo~(1|azienda)+(1|Time),
+M2 <- brm(kgcapo~(1|azienda)+(1|Occasion),
+          data = df, family = gaussian, 
+          iter = 8000, cores = 8, seed = 1966)
+M3 <- brm(kgcapo~ Occasion+(1|azienda) ,
           data = df, family = gaussian, 
           iter = 8000, cores = 8, seed = 1966)
  
+M4 <- brm(kgcapo~ Occasion+(1+Occasion|azienda) ,
+          data = df, family = gaussian, 
+          iter = 8000, cores = 8, seed = 1966)
+
+M5 <- brm(kgcapo~(1+Occasion|azienda) ,
+          data = df, family = gaussian, 
+          iter = 8000, cores = 8, seed = 1966)
+
+M6 <- brm(kgcapo~ Welfare+(1+Occasion|azienda) ,
+          data = df, family = gaussian, 
+          iter = 8000, cores = 8, seed = 1966)
+
+M7 <- brm(kgcapo~ Welfare+(1|Occasion)+(1|azienda) ,
+          data = df, family = gaussian, 
+          iter = 8000, cores = 8, seed = 1966)
+
+M8 <- brm(kgcapo~ Welfare+ Occasion+(1|azienda) ,
+          data = df, family = gaussian, 
+          iter = 8000, cores = 8, seed = 1966)
+
+az <- sample(unique(df$azienda), 5)
+
+
+df %>% na.omit() %>% 
+  mutate(Well = factor(ntile(Welfare, 4))) %>%  
+  bind_cols(as_tibble(fitted(M7))) %>% 
+  #filter(azienda %in% az) %>%   
+  ggplot()+
+  geom_line(aes(x = Occasion, y = kgcapo, group = azienda), size = 1, alpha = .75, color = "dodgerblue2")+
+  geom_line(aes(x = Occasion, y = Estimate, group = azienda), shape = 1, size = 1, stoke =1.5)+
+  facet_wrap(~Well, labeller = as_labeller(c('1' = "Insuff", 
+                                                '2' = "Basso", 
+                                                '3' = "Medio", 
+                                                '4' = "Alto")), nrow = 1)+
+  stat_smooth(aes(x = Occasion, y = Estimate))
+
+library(patchwork)
+
+df %>% 
+  ggplot(aes(x = Time, y =kgcapo, group = azienda))+
+  geom_line(size = .75, alpha = .20)
+
+
 
 model <- brm(kgcapo ~  Welfare+hsize+Time+LATTAZIONE+Biosic+para+caev+agal+(1|azienda), 
          data = df, family = gaussian, 
@@ -115,10 +163,10 @@ pd <- p_direction(model)
 plot(pd)+scale_fill_brewer(palette="Blues")+
   theme_ipsum_rc()
 
-loo(model, moment_match = TRUE)
+loo(M7,M8,  moment_match = TRUE)
 
-kfm <- kfold(mod, K=10)
-kfm2 <- kfold(mod1, K=10)
+kfm <- kfold(M7, K=10)
+kfm2 <- kfold(M8, K=10)
 
 kf <- loo_compare(kfm, kfm2)
 pp_check(model)
