@@ -63,6 +63,7 @@ dag <- dagify(Stato_Sanitario~Biosicurezza,
 library(brms)
 library(bayestestR)
 library(see)
+library(rstanarm)
 
 df <- df %>% 
   mutate(Time = factor(paste(anno,mese)), 
@@ -80,7 +81,7 @@ df <- df %>%
          caev = scale(`caev(%)`), 
          hsize = scale(caprelatt), 
          WScore = scale(score)) %>% 
-  select(azienda, Time2, Welfare,  Occasion,  kgcapo)
+  select(azienda, Time2, Welfare,  Occasion,  kgcapo, WScore)
   
 ####grafico----
 df %>% 
@@ -96,35 +97,93 @@ df %>%
 M0 <- brm(kgcapo~1,
           data = df, family = gaussian, 
           iter = 8000, cores = 8, seed = 1966)
+
+M0_stanlmer <- stan_glm(formula = kgcapo~1,   
+                         data = df,
+                         seed = 349)
+
+
 M1 <- brm(kgcapo~(1|azienda),
           data = df, family = gaussian, 
           iter = 8000, cores = 8, seed = 1966)
+
+M1_stanlmer <- stan_lmer(formula = kgcapo~(1|azienda),   
+                        data = df,
+                        seed = 349)
+
+
 M2 <- brm(kgcapo~(1|azienda)+(1|Occasion),
           data = df, family = gaussian, 
           iter = 8000, cores = 8, seed = 1966)
-M3 <- brm(kgcapo~ Occasion+(1|azienda) ,
-          data = df, family = gaussian, 
-          iter = 8000, cores = 8, seed = 1966)
+
+
+M2_stanlmer <- stan_lmer(formula = kgcapo~(1|azienda)+(1|Occasion),   
+                         data = df,
+                         seed = 349)
+
+
+# sims <- as.matrix(M2_stanlmer)
+# 
+# 
+# 
+# mu_a_sims <- as.matrix(M2_stanlmer, 
+#                        pars = "(Intercept)")
+# u_sims <- as.matrix(M2_stanlmer, 
+#                     regex_pars = "b\\[\\(Intercept\\) azienda\\:")
+# uocc_sims <- as.matrix(M2_stanlmer, 
+#                     regex_pars = "b\\[\\(Intercept\\) Occasion\\:")
+
  
-M4 <- brm(kgcapo~ Occasion+(1+Occasion|azienda) ,
-          data = df, family = gaussian, 
-          iter = 8000, cores = 8, seed = 1966)
 
-M5 <- brm(kgcapo~(1+Occasion|azienda) ,
-          data = df, family = gaussian, 
-          iter = 8000, cores = 8, seed = 1966)
 
-M6 <- brm(kgcapo~ Welfare+(1+Occasion|azienda) ,
-          data = df, family = gaussian, 
-          iter = 8000, cores = 8, seed = 1966)
+
+# M3 <- brm(kgcapo~ Occasion+(1|azienda) ,
+#           data = df, family = gaussian, 
+#           iter = 8000, cores = 8, seed = 1966)
+#  
+# M4 <- brm(kgcapo~ Occasion+(1+Occasion|azienda) ,
+#           data = df, family = gaussian, 
+#           iter = 8000, cores = 8, seed = 1966)
+# 
+# M5 <- brm(kgcapo~(1+Occasion|azienda) ,
+#           data = df, family = gaussian, 
+#           iter = 8000, cores = 8, seed = 1966)
+# 
+# M6 <- brm(kgcapo~ Welfare+(1+Occasion|azienda) ,
+#           data = df, family = gaussian, 
+#           iter = 8000, cores = 8, seed = 1966)
 
 M7 <- brm(kgcapo~ Welfare+(1|Occasion)+(1|azienda) ,
           data = df, family = gaussian, 
           iter = 8000, cores = 8, seed = 1966)
 
-M8 <- brm(kgcapo~ Welfare+ Occasion+(1|azienda) ,
-          data = df, family = gaussian, 
-          iter = 8000, cores = 8, seed = 1966)
+
+M7_stanlmer <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion),   
+                         data = df,
+                         seed = 349)
+
+
+
+
+# M8 <- brm(kgcapo~ Welfare+ Occasion+(1|azienda) ,
+#           data = df, family = gaussian, 
+#           iter = 8000, cores = 8, seed = 1966)
+
+loo(M1_stanlmer,M2_stanlmer,  moment_match = TRUE)
+
+kfm <- kfold(M1_stanlmer, K=10)
+kfm2 <- kfold(M2_stanlmer, K=10)
+
+kf <- loo_compare(kfm, kfm2)
+pp_check(model)
+pp_check(mod)
+
+stanplot(M2)
+library(parameters)
+model_parameters(model, effects= "fixed")
+
+
+
 
 az <- sample(unique(df$azienda), 5)
 
@@ -163,18 +222,6 @@ pd <- p_direction(model)
 plot(pd)+scale_fill_brewer(palette="Blues")+
   theme_ipsum_rc()
 
-loo(M7,M8,  moment_match = TRUE)
-
-kfm <- kfold(M7, K=10)
-kfm2 <- kfold(M8, K=10)
-
-kf <- loo_compare(kfm, kfm2)
-pp_check(model)
-pp_check(mod)
-
-stanplot(model)
-library(parameters)
-model_parameters(model, effects= "fixed")
 
 
 mod.W <- brm(Welfare ~ Time+  Biosic+(1|azienda), 
