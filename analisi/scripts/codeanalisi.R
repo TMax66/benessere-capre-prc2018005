@@ -63,7 +63,7 @@ dag <- dagify(Stato_Sanitario~Biosicurezza,
  
 
 df <- df %>% 
-  mutate(Azienda = as.integer(factor(azienda)), 
+  mutate(Azienda = factor(azienda), 
          Time = factor(paste(anno,mese)), 
          Time2 = factor(Time, levels = c(
                          "2019 1", "2019 2",  "2019 3","2019 4", "2019 5", "2019 6", "2019 7", "2019 8", 
@@ -117,9 +117,26 @@ M1_stanlmer <- stan_lmer(formula = kgcapo~0+as.factor(azienda)+(1|azienda),
                         data = df,
                         seed = 349)
 
-M1_stanlmer <- stan_glm(formula = kgcapo~ 0+as.factor(azienda),
+M1_stanlmer <- stan_glm(formula = kgcapo~ 0+Azienda,
                          data = df,
                          seed = 349)
+df %>% 
+  group_by(Azienda) %>% 
+  summarise(m = mean(kgcapo, na.rm = T), 
+            sd = sd(kgcapo, na.rm = T)) %>% 
+  left_join(
+    (df %>% 
+       select(Azienda, Welfare)), by = c("Azienda")   
+      
+  ) %>% 
+  unique()
+
+plot(p_direction(M1_stanlmer))+
+  labs(title= "", y = "Aziende", x = "produzione latte (kgcapo)")+
+  theme_light()+
+  theme(legend.position = "none")+ scale_fill_brewer(palette="Blues")
+
+post <- as.data.frame(M1_stanlmer)
 
 M2 <- brm(kgcapo~ (1|azienda)+(1|Occasion),
           data = df, family = gaussian, 
