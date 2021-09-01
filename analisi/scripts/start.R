@@ -6,6 +6,11 @@ library("lubridate")
 library("here")
 library("hrbrthemes")
 library(readxl)
+library(rstanarm)
+library(brms)
+library(bayestestR)
+library(see)
+library(bayesplot)
 options(scipen = 999)
 
 

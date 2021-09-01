@@ -60,13 +60,11 @@ dag <- dagify(Stato_Sanitario~Biosicurezza,
 
 
 #Modello nullo----
-library(brms)
-library(bayestestR)
-library(see)
-library(rstanarm)
+ 
 
 df <- df %>% 
-  mutate(Time = factor(paste(anno,mese)), 
+  mutate(Azienda = as.integer(factor(azienda)), 
+         Time = factor(paste(anno,mese)), 
          Time2 = factor(Time, levels = c(
                          "2019 1", "2019 2",  "2019 3","2019 4", "2019 5", "2019 6", "2019 7", "2019 8", 
                          "2019 9", "2019 10",  "2019 11",  "2019 12", 
@@ -81,7 +79,7 @@ df <- df %>%
          caev = scale(`caev(%)`), 
          hsize = scale(caprelatt), 
          WScore = scale(score)) %>% 
-  select(azienda, Time2, Welfare,  Occasion,  kgcapo, WScore)
+  select(Azienda, azienda, Time2, Welfare,  Occasion,  kgcapo, WScore)
   
 ####grafico----
 df %>% 
@@ -101,23 +99,34 @@ M0 <- brm(kgcapo~1,
 M0_stanlmer <- stan_glm(formula = kgcapo~1,   
                          data = df,
                          seed = 349)
+df %>% 
+  group_by(azienda) %>% 
+summarise(media = mean(kgcapo, na.rm = T), 
+          sd = sd(kgcapo, na.rm = T)) %>% 
+summarise(Media = mean(media), 
+          SD = sd(sd, na.rm = T))
 
 
 M1 <- brm(kgcapo~(1|azienda),
           data = df, family = gaussian, 
           iter = 8000, cores = 8, seed = 1966)
 
-M1_stanlmer <- stan_lmer(formula = kgcapo~(1|azienda),   
+ 
+
+M1_stanlmer <- stan_lmer(formula = kgcapo~0+as.factor(azienda)+(1|azienda),   
                         data = df,
                         seed = 349)
 
+M1_stanlmer <- stan_glm(formula = kgcapo~ 0+as.factor(azienda),
+                         data = df,
+                         seed = 349)
 
-M2 <- brm(kgcapo~(1|azienda)+(1|Occasion),
+M2 <- brm(kgcapo~ (1|azienda)+(1|Occasion),
           data = df, family = gaussian, 
           iter = 8000, cores = 8, seed = 1966)
 
 
-M2_stanlmer <- stan_lmer(formula = kgcapo~(1|azienda)+(1|Occasion),   
+M2_stanlmer <- stan_lmer(formula = kgcapo~ 0 + (1|azienda)+(1|Occasion),   
                          data = df,
                          seed = 349)
 
