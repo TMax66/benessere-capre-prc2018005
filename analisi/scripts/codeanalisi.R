@@ -62,7 +62,7 @@ dag <- dagify(Stato_Sanitario~Biosicurezza,
 #Modello nullo----
  
 
-df <- df %>% 
+dt <- df %>% 
   mutate(Azienda = factor(azienda), 
          Time = factor(paste(anno,mese)), 
          Time2 = factor(Time, levels = c(
@@ -73,15 +73,86 @@ df <- df %>%
                        ),
          Occasion = as.numeric(Time2), 
          Welfare = scale(complben), 
+         WelfA = scale(areaA), 
+         WelfB = scale(areaB), 
+         WelfC = scale(areaC), 
          Biosic = scale(biosic), 
          para = scale(`paratbc(%)`), 
          agal = scale(`agalassia(%)`), 
          caev = scale(`caev(%)`), 
          hsize = scale(caprelatt), 
          WScore = scale(score)) %>% 
-  select(Azienda, azienda, Time2, Welfare,  Occasion,  kgcapo, WScore)
+  select(Azienda, azienda, Time2, Welfare, WScore,  Occasion,  kgcapo, Biosic, hsize,LATTAZIONE, 
+         WelfA, WelfB, WelfC )
   
-####grafico----
+
+
+##modelli----
+
+ 
+M1  <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion),   
+                         data = dt,
+                         seed = 349)
+M2 <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion),   
+                data = dt,
+                seed = 349)
+
+M3 <- stan_lmer(formula = kgcapo~WelfB+(1|azienda)+(1|Occasion),   
+                data = dt,
+                seed = 349)
+
+M4 <- stan_lmer(formula = kgcapo~WelfC+(1|azienda)+(1|Occasion),   
+                data = dt,
+                seed = 349)
+
+ 
+library(parameters)
+pM1 <- model_parameters(M1, effects= "random")
+pM2 <- model_parameters(M2, effects= "random")
+pM3 <- model_parameters(M3, effects= "random")
+pM4 <- model_parameters(M4, effects= "random")
+ 
+
+M1.1 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic,   
+                     data = dt,
+                     seed = 349)
+
+M1.2 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE,   
+                  data = dt,
+                  seed = 349)
+
+
+M1.3 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE+hsize,   
+                  data = dt,
+                  seed = 349)
+looM1.3 <- loo(M1.3, k_threshold = 0.7)
+  
+  
+M1.3x <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+Occasion+Biosic+LATTAZIONE+hsize,   
+                  data = dt,
+                  seed = 349)
+looM1.3x <- loo(M1.3x, k_threshold = 0.7)
+
+
+loo_compare(looM1.3, looM1.3x)
+
+
+M2.1 <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion)+ Biosic,   
+                data = dt,
+                seed = 349)
+
+M2.2 <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE,   
+                  data = dt,
+                  seed = 349)
+
+
+
+
+
+
+
+#OLDSTUFF-----
+####grafico
 df %>% 
   mutate(azienda=casefold(azienda, upper = TRUE)) %>% 
   drop_na(kgcapo) %>% 
@@ -91,104 +162,113 @@ df %>%
   geom_line(aes(x=Occasion, y = kgcapo, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
   theme_ipsum_rc()
 
-##modelli----
-M0 <- brm(kgcapo~1,
-          data = df, family = gaussian, 
-          iter = 8000, cores = 8, seed = 1966)
-
-M0_stanlmer <- stan_glm(formula = kgcapo~1,   
-                         data = df,
-                         seed = 349)
-df %>% 
-  group_by(azienda) %>% 
-summarise(media = mean(kgcapo, na.rm = T), 
-          sd = sd(kgcapo, na.rm = T)) %>% 
-summarise(Media = mean(media), 
-          SD = sd(sd, na.rm = T))
-
-
-M1 <- brm(kgcapo~(1|azienda),
-          data = df, family = gaussian, 
-          iter = 8000, cores = 8, seed = 1966)
-
- 
-
-M1_stanlmer <- stan_lmer(formula = kgcapo~0+as.factor(azienda)+(1|azienda),   
-                        data = df,
-                        seed = 349)
-
-M1_stanlmer <- stan_glm(formula = kgcapo~ 0+Azienda,
-                         data = df,
-                         seed = 349)
-df %>% 
-  group_by(Azienda) %>% 
-  summarise(m = mean(kgcapo, na.rm = T), 
-            sd = sd(kgcapo, na.rm = T)) %>% 
-  left_join(
-    (df %>% 
-       select(Azienda, Welfare)), by = c("Azienda")   
-      
-  ) %>% 
-  unique()
-
-plot(p_direction(M1_stanlmer))+
-  labs(title= "", y = "Aziende", x = "produzione latte (kgcapo)")+
-  theme_light()+
-  theme(legend.position = "none")+ scale_fill_brewer(palette="Blues")
-
-post <- as.data.frame(M1_stanlmer)
-
-M2 <- brm(kgcapo~ (1|azienda)+(1|Occasion),
-          data = df, family = gaussian, 
-          iter = 8000, cores = 8, seed = 1966)
-
-
-M2_stanlmer <- stan_lmer(formula = kgcapo~ 0 + (1|azienda)+(1|Occasion),   
-                         data = df,
-                         seed = 349)
-
-
-# sims <- as.matrix(M2_stanlmer)
-# 
-# 
-# 
-# mu_a_sims <- as.matrix(M2_stanlmer, 
-#                        pars = "(Intercept)")
-# u_sims <- as.matrix(M2_stanlmer, 
-#                     regex_pars = "b\\[\\(Intercept\\) azienda\\:")
-# uocc_sims <- as.matrix(M2_stanlmer, 
-#                     regex_pars = "b\\[\\(Intercept\\) Occasion\\:")
-
- 
-
-
-
-# M3 <- brm(kgcapo~ Occasion+(1|azienda) ,
+# M0 <- brm(kgcapo~1,
 #           data = df, family = gaussian, 
 #           iter = 8000, cores = 8, seed = 1966)
+# 
+# M0_stanlmer <- stan_glm(formula = kgcapo~1,   
+#                          data = df,
+#                          seed = 349)
+# df %>% 
+#   group_by(azienda) %>% 
+# summarise(media = mean(kgcapo, na.rm = T), 
+#           sd = sd(kgcapo, na.rm = T)) %>% 
+# summarise(Media = mean(media), 
+#           SD = sd(sd, na.rm = T))
+# 
+# 
+# M1 <- brm(kgcapo~(1|azienda),
+#           data = df, family = gaussian, 
+#           iter = 8000, cores = 8, seed = 1966)
+# 
 #  
-# M4 <- brm(kgcapo~ Occasion+(1+Occasion|azienda) ,
+# 
+# M1_stanlmer <- stan_lmer(formula = kgcapo~0+as.factor(azienda)+(1|azienda),   
+#                         data = df,
+#                         seed = 349)
+# 
+# M1_stanlmer <- stan_glm(formula = kgcapo~ 0+Azienda,
+#                          data = df,
+#                          seed = 349)
+# df %>% 
+#   group_by(Azienda) %>% 
+#   summarise(m = mean(kgcapo, na.rm = T), 
+#             sd = sd(kgcapo, na.rm = T)) %>% 
+#   left_join(
+#     (df %>% 
+#        select(Azienda, Welfare)), by = c("Azienda")   
+#       
+#   ) %>% 
+#   unique()
+# 
+# plot(p_direction(M1_stanlmer))+
+#   labs(title= "", y = "Aziende", x = "produzione latte (kgcapo)")+
+#   theme_light()+
+#   theme(legend.position = "none")+ scale_fill_brewer(palette="Blues")
+# 
+# post <- as.data.frame(M1_stanlmer)
+# 
+# M2 <- brm(kgcapo~ (1|azienda)+(1|Occasion),
 #           data = df, family = gaussian, 
 #           iter = 8000, cores = 8, seed = 1966)
 # 
-# M5 <- brm(kgcapo~(1+Occasion|azienda) ,
-#           data = df, family = gaussian, 
-#           iter = 8000, cores = 8, seed = 1966)
 # 
-# M6 <- brm(kgcapo~ Welfare+(1+Occasion|azienda) ,
+# M2_stanlmer <- stan_lmer(formula = kgcapo~ 0 + (1|azienda)+(1|Occasion),   
+#                          data = df,
+#                          seed = 349)
+# 
+# 
+# # sims <- as.matrix(M2_stanlmer)
+# # 
+# # 
+# # 
+# # mu_a_sims <- as.matrix(M2_stanlmer, 
+# #                        pars = "(Intercept)")
+# # u_sims <- as.matrix(M2_stanlmer, 
+# #                     regex_pars = "b\\[\\(Intercept\\) azienda\\:")
+# # uocc_sims <- as.matrix(M2_stanlmer, 
+# #                     regex_pars = "b\\[\\(Intercept\\) Occasion\\:")
+# 
+#  
+# 
+# 
+# 
+# # M3 <- brm(kgcapo~ Occasion+(1|azienda) ,
+# #           data = df, family = gaussian, 
+# #           iter = 8000, cores = 8, seed = 1966)
+# #  
+# # M4 <- brm(kgcapo~ Occasion+(1+Occasion|azienda) ,
+# #           data = df, family = gaussian, 
+# #           iter = 8000, cores = 8, seed = 1966)
+# # 
+# # M5 <- brm(kgcapo~(1+Occasion|azienda) ,
+# #           data = df, family = gaussian, 
+# #           iter = 8000, cores = 8, seed = 1966)
+# # 
+# # M6 <- brm(kgcapo~ Welfare+(1+Occasion|azienda) ,
+# #           data = df, family = gaussian, 
+# #           iter = 8000, cores = 8, seed = 1966)
+# 
+# M7 <- brm(kgcapo~ Welfare+(1|Occasion)+(1|azienda) ,
 #           data = df, family = gaussian, 
 #           iter = 8000, cores = 8, seed = 1966)
 
-M7 <- brm(kgcapo~ Welfare+(1|Occasion)+(1|azienda) ,
-          data = df, family = gaussian, 
-          iter = 8000, cores = 8, seed = 1966)
 
-
-M7_stanlmer <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion),   
+#M7_stanlmer <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion),   
                          data = df,
                          seed = 349)
 
-
+### usare la variabiel occasion come variabile random...sotto il confronto tra i modelli con 
+##due utilizzi diversi della variabile è a favore dell'uso random....
+# loo1<- loo(M7_stanlmer,k_threshold = 0.7)
+# 
+# M7a_stanlmer <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+ Occasion,   
+#                          data = df,
+#                          seed = 349 )
+# 
+# loo2<- loo(M7a_stanlmer,k_threshold = 0.7)
+# 
+# loo_compare(loo1, loo2)
 
 
 # M8 <- brm(kgcapo~ Welfare+ Occasion+(1|azienda) ,
@@ -204,9 +284,6 @@ kf <- loo_compare(kfm, kfm2)
 pp_check(model)
 pp_check(mod)
 
-stanplot(M2)
-library(parameters)
-model_parameters(model, effects= "fixed")
 
 
 
