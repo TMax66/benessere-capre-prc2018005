@@ -10,39 +10,69 @@ source("analisi/scripts/start.R")
 library(dagitty)
 library(ggdag)
 
-dag <- dagify(Produzione~Benessere+Stato_Sanitario +  Lattazione+ Tempo + Razza, 
+
+
+dag0 <- dagify(Produzione~Benessere+Lattazione+ Herd_Size + Stato_Sanitario,
               
-                
-              Stato_Sanitario~Herd_Size, 
-              Stato_Sanitario~Biosicurezza,
-               
-              Lattazione~Tempo, 
-              Stato_Sanitario~Razza, 
+              
+              Biosicurezza~Herd_Size, 
+              
+              Benessere ~ Stato_Sanitario, 
+              
+              Stato_Sanitario~Biosicurezza, 
               
               exposure =  "Benessere", 
               outcome = "Produzione", 
-              latent = "Razza", 
               
               labels = c("Produzione" = "Produzione", 
                          "Benessere" = "Benessere", 
-                         "Stato_Sanitario" = "Stato\n Sanitario",
+                         "Stato_Sanitario" = "Stato\n Sanitario", 
                          "Lattazione" = "Lattazione", 
                          "Biosicurezza"= "Biosicurezza",
-                         "Herd_Size"= "Herd\n Size", 
-                         "Tempo" = "Tempo", 
-                         "Razza" = "Razza"
-              
+                         "Herd_Size"= "Herd\n Size"
               )
 )
 
+ggdag(dag0, text_col = "blue",  node_size = 1)+
+  theme_dag_grid()
+
+
+
+dag <- dagify(Produzione~Benessere+Lattazione+ Herd_Size + Biosicurezza, 
+              
+                
+              Biosicurezza~Herd_Size, 
+             
+              Benessere ~ Biosicurezza, 
+            
+       
+              
+              exposure =  "Benessere", 
+              outcome = "Produzione", 
+              
+              labels = c("Produzione" = "Produzione", 
+                         "Benessere" = "Benessere", 
+                         
+                         "Lattazione" = "Lattazione", 
+                         "Biosicurezza"= "Biosicurezza",
+                         "Herd_Size"= "Herd\n Size"
+                        
+              
+              )
+)
+ggdag(dag, text_col = "blue",  node_size = 1)+
+  theme_dag_grid()
+
+
 dag %>% dseparated("Biosicurezza",  "Produzione")
+
 
 adjustmentSets(dag)
 
 ggdag(dag, text_col = "blue",  node_size = 1)+
   theme_dag_grid()
 
-ggdag_exogenous(dag)
+ggdag_exogenous(dag0)
 ggdag_paths(dag, text = FALSE, use_labels = "label", shadow = TRUE)+
   theme_dag_grid()
 
@@ -113,40 +143,84 @@ pM3 <- model_parameters(M3, effects= "random")
 pM4 <- model_parameters(M4, effects= "random")
  
 
-M1.1 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic,   
-                     data = dt,
-                     seed = 349)
+# M1.1 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic,   
+#                      data = dt,
+#                      seed = 349)
+# 
+# M1.2 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE,   
+#                   data = dt,
+#                   seed = 349)
 
-M1.2 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE,   
+###Model con Welfare----
+M1.1 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE+hsize,   
                   data = dt,
                   seed = 349)
+looM1.1 <- loo(M1.1, k_threshold = 0.7)
 
+pM1.1 <- model_parameters(M1.1)
 
-M1.3 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE+hsize,   
-                  data = dt,
-                  seed = 349)
-looM1.3 <- loo(M1.3, k_threshold = 0.7)
+plot(p_direction(M1.1))+scale_fill_brewer(palette="Blues")+
+  theme_ipsum_rc()
+
+tab_model(M1.1)
+
+library(sjPlot)
   
+
+plot_model(M1.1, show.values = TRUE, show.intercept = TRUE)
+
+ 
   
-M1.3x <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+Occasion+Biosic+LATTAZIONE+hsize,   
+# M1.3x <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+Occasion+Biosic+LATTAZIONE+hsize,   
+#                   data = dt,
+#                   seed = 349)
+# looM1.3x <- loo(M1.3x, k_threshold = 0.7)
+# 
+# 
+# loo_compare(looM1.3, looM1.3x)
+
+###Model con WelfA----
+# M2.1 <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion)+ Biosic,   
+#                 data = dt,
+#                 # seed = 349)
+
+M2.1 <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE+hsize, 
                   data = dt,
                   seed = 349)
-looM1.3x <- loo(M1.3x, k_threshold = 0.7)
+
+pM2.1 <- model_parameters(M2.1)
+
+ 
+
+plot(p_direction(M2.1))+scale_fill_brewer(palette="Blues")+
+  theme_ipsum_rc()
 
 
-loo_compare(looM1.3, looM1.3x)
+###Model con WelfB---
 
 
-M2.1 <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion)+ Biosic,   
-                data = dt,
-                seed = 349)
-
-M2.2 <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE,   
+M3.1 <- stan_lmer(formula = kgcapo~WelfB+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE+hsize, 
                   data = dt,
                   seed = 349)
 
+pM3.1 <- model_parameters(M3.1)
+
+plot(p_direction(M3.1))+scale_fill_brewer(palette="Blues")+
+  theme_ipsum_rc()
 
 
+
+###Model con WelfC
+
+M4.1 <- stan_lmer(formula = kgcapo~WelfC+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE+hsize, 
+                  data = dt,
+                  seed = 349)
+
+pM4.1 <- model_parameters(M4.1)
+
+
+plot(p_direction(M4.1))+scale_fill_brewer(palette="Blues")+
+  theme_ipsum_rc()
 
 
 

@@ -11,6 +11,7 @@ library(brms)
 library(bayestestR)
 library(see)
 library(bayesplot)
+library(parameters)
 options(scipen = 999)
 
 
