@@ -112,7 +112,7 @@ dt <- df %>%
          caev = scale(`caev(%)`), 
          hsize = scale(caprelatt), 
          WScore = scale(score)) %>% 
-  select(Azienda, azienda, Time2, Welfare, WScore,  Occasion,  kgcapo, Biosic, hsize,LATTAZIONE, 
+  select(Azienda, azienda, Time2, Welfare,  para, agal, caev, Occasion,  kgcapo, Biosic, hsize,LATTAZIONE, 
          WelfA, WelfB, WelfC )
   
 
@@ -155,11 +155,24 @@ pM4 <- model_parameters(M4, effects= "random")
 M1.1 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE+hsize,   
                   data = dt,
                   seed = 349)
+
+
+M1.full <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE+hsize+
+                      para+caev+agal,   
+                  data = dt,
+                  seed = 349)
+
+
+
 looM1.1 <- loo(M1.1, k_threshold = 0.7)
+looM1.1.1 <- loo(M1.1.1,k_threshold = 0.7)
+
+loo_compare(looM1.1, looM1.1.1)
+
 
 pM1.1 <- model_parameters(M1.1)
 
-plot(p_direction(M1.1))+scale_fill_brewer(palette="Blues")+
+plot(p_direction(M1.full))+scale_fill_brewer(palette="Blues")+
   theme_ipsum_rc()
 
 tab_model(M1.1)
@@ -188,11 +201,19 @@ M2.1 <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion)+Biosic+LATTAZI
                   data = dt,
                   seed = 349)
 
+M2.full <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE+hsize+
+                       para+caev+agal,   
+                     data = dt,
+                     seed = 349)
+
+
+
+
 pM2.1 <- model_parameters(M2.1)
 
  
 
-plot(p_direction(M2.1))+scale_fill_brewer(palette="Blues")+
+plot(p_direction(M2.full))+scale_fill_brewer(palette="Blues")+
   theme_ipsum_rc()
 
 
@@ -203,9 +224,17 @@ M3.1 <- stan_lmer(formula = kgcapo~WelfB+(1|azienda)+(1|Occasion)+Biosic+LATTAZI
                   data = dt,
                   seed = 349)
 
+
+
+M3.full <- stan_lmer(formula = kgcapo~WelfB+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE+hsize+
+                       para+caev+agal,   
+                     data = dt,
+                     seed = 349)
+
+
 pM3.1 <- model_parameters(M3.1)
 
-plot(p_direction(M3.1))+scale_fill_brewer(palette="Blues")+
+plot(p_direction(M3.full))+scale_fill_brewer(palette="Blues")+
   theme_ipsum_rc()
 
 
@@ -216,11 +245,28 @@ M4.1 <- stan_lmer(formula = kgcapo~WelfC+(1|azienda)+(1|Occasion)+Biosic+LATTAZI
                   data = dt,
                   seed = 349)
 
+M4.full <- stan_lmer(formula = kgcapo~WelfC+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE+hsize+
+                       para+caev+agal,   
+                     data = dt,
+                     seed = 349)
+
+
 pM4.1 <- model_parameters(M4.1)
 
 
-plot(p_direction(M4.1))+scale_fill_brewer(palette="Blues")+
+plot(p_direction(M4.full))+scale_fill_brewer(palette="Blues")+
   theme_ipsum_rc()
+
+
+
+
+
+###
+Mx <- stan_lmer(formula = Welfare~ (1|azienda)+(1|Occasion)+Biosic,   
+                     data = dt,
+                     seed = 349,
+                     control = list(adapt_delta = 0.99),
+                                    cores = 8)
 
 
 
