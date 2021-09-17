@@ -12,24 +12,27 @@ library(ggdag)
 
 
 
-dag0 <- dagify(Produzione~Benessere+Lattazione+ Herd_Size + Stato_Sanitario,
+dag0 <- dagify(Produzione~Benessere+Lattazione+ Herd_Size +ParaT+CAEV+Agalassia+Biosicurezza,
               
               
               Biosicurezza~Herd_Size, 
-              
-              Benessere ~ Stato_Sanitario, 
-              
-              Stato_Sanitario~Biosicurezza, 
+              Benessere ~ParaT , 
+              Benessere ~ CAEV , 
+              Benessere ~ Agalassia,
+              Benessere ~ Biosicurezza,
               
               exposure =  "Benessere", 
               outcome = "Produzione", 
               
               labels = c("Produzione" = "Produzione", 
                          "Benessere" = "Benessere", 
-                         "Stato_Sanitario" = "Stato\n Sanitario", 
+                          
                          "Lattazione" = "Lattazione", 
                          "Biosicurezza"= "Biosicurezza",
-                         "Herd_Size"= "Herd\n Size"
+                         "Herd_Size"= "Herd Size", 
+                         "ParaT" = "ParaT", 
+                         "CAEV" = "CAEV", 
+                         "Agalassia" = "Agalassia"
               )
 )
 
@@ -38,30 +41,33 @@ ggdag(dag0, text_col = "blue",  node_size = 1)+
 
 
 
-dag <- dagify(Produzione~Benessere+Lattazione+ Herd_Size + Biosicurezza, 
-              
-                
-              Biosicurezza~Herd_Size, 
-             
-              Benessere ~ Biosicurezza, 
-            
-       
-              
-              exposure =  "Benessere", 
-              outcome = "Produzione", 
-              
-              labels = c("Produzione" = "Produzione", 
-                         "Benessere" = "Benessere", 
-                         
-                         "Lattazione" = "Lattazione", 
-                         "Biosicurezza"= "Biosicurezza",
-                         "Herd_Size"= "Herd\n Size"
-                        
-              
-              )
+dag1 <- dagify(Produzione~Benessere+Lattazione+ Herd_Size + Biosicurezza,
+               
+               
+               Biosicurezza~Herd_Size, 
+               Benessere ~ParaT , 
+               Benessere ~ CAEV , 
+               Benessere ~ Agalassia,
+               Benessere ~ Biosicurezza,
+               
+               exposure =  "Benessere", 
+               outcome = "Produzione", 
+               
+               labels = c("Produzione" = "Produzione", 
+                          "Benessere" = "Benessere", 
+                          
+                          "Lattazione" = "Lattazione", 
+                          "Biosicurezza"= "Biosicurezza",
+                          "Herd_Size"= "Herd Size", 
+                          "ParaT" = "ParaT", 
+                          "CAEV" = "CAEV", 
+                          "Agalassia" = "Agalassia"
+               )
 )
-ggdag(dag, text_col = "blue",  node_size = 1)+
+
+ggdag(dag1, text_col = "blue",  node_size = 1)+
   theme_dag_grid()
+ 
 
 
 dag %>% dseparated("Biosicurezza",  "Produzione")
@@ -79,7 +85,7 @@ ggdag_paths(dag, text = FALSE, use_labels = "label", shadow = TRUE)+
 
 ggdag_adjustment_set(dag, text_col = "blue")+  theme_dag_grid()
 
-ggdag_dseparated(dag, controlling_for = c("Biosicurezza"), 
+ggdag_dseparated(dag1, controlling_for = c("ParaT", "CAEV", ""), 
                  text_col = "blue", collider_lines = FALSE)+theme_dag_grid()
 
 
@@ -117,6 +123,7 @@ dt <- df %>%
   
 
 
+
 ##modelli----
 
  
@@ -135,7 +142,10 @@ M4 <- stan_lmer(formula = kgcapo~WelfC+(1|azienda)+(1|Occasion),
                 data = dt,
                 seed = 349)
 
- 
+plot(p_direction(M4))+scale_fill_brewer(palette="Blues")+
+  theme_ipsum_rc()
+
+
 library(parameters)
 pM1 <- model_parameters(M1, effects= "random")
 pM2 <- model_parameters(M2, effects= "random")
@@ -164,10 +174,28 @@ M1.full <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic+LA
 
 
 
-looM1.1 <- loo(M1.1, k_threshold = 0.7)
-looM1.1.1 <- loo(M1.1.1,k_threshold = 0.7)
 
-loo_compare(looM1.1, looM1.1.1)
+
+
+
+looM1.1 <- loo(M1.1, k_threshold = 0.7)
+looM1.full <- loo(M1.full,k_threshold = 0.7)
+
+loo_compare(looM1.1, looM1.full)
+
+
+Mwelf <- stan_lmer(formula = Welfare~(1|azienda)+ para,  
+                  data = dt,
+                  seed = 349)
+
+
+
+
+
+
+
+
+
 
 
 pM1.1 <- model_parameters(M1.1)
