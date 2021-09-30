@@ -1,102 +1,6 @@
 source("analisi/scripts/start.R")
-#Modello DAG ----
-## specificazione del modello: 
-## outcome: kgcapo
-## predittore: benessere
-## altre varibili : stato sanitario, biosicurezza, dimensione allev, tipologia di lattazione ( lunga/ breve)
-#stato sanitario ( prev intrall di paratbc, caev , mastiti, pseudotub
-##             biosicurezza ( confondente?)
-   
-library(dagitty)
-library(ggdag)
-
-
-
-dag0 <- dagify(Produzione~Benessere+Lattazione+ Herd_Size +ParaT+CAEV+Agalassia+Biosicurezza,
-              
-              
-              Biosicurezza~Herd_Size, 
-              Benessere ~ParaT , 
-              Benessere ~ CAEV , 
-              Benessere ~ Agalassia,
-              Benessere ~ Biosicurezza,
-              
-              exposure =  "Benessere", 
-              outcome = "Produzione", 
-              
-              labels = c("Produzione" = "Produzione", 
-                         "Benessere" = "Benessere", 
-                          
-                         "Lattazione" = "Lattazione", 
-                         "Biosicurezza"= "Biosicurezza",
-                         "Herd_Size"= "Herd Size", 
-                         "ParaT" = "ParaT", 
-                         "CAEV" = "CAEV", 
-                         "Agalassia" = "Agalassia"
-              )
-)
-
-ggdag(dag0, text_col = "blue",  node_size = 1)+
-  theme_dag_grid()
-
-
-
-dag1 <- dagify(Produzione~Benessere+Lattazione+ Herd_Size + Biosicurezza,
-               
-               
-               Biosicurezza~Herd_Size, 
-               Benessere ~ParaT , 
-               Benessere ~ CAEV , 
-               Benessere ~ Agalassia,
-               Benessere ~ Biosicurezza,
-               
-               exposure =  "Benessere", 
-               outcome = "Produzione", 
-               
-               labels = c("Produzione" = "Produzione", 
-                          "Benessere" = "Benessere", 
-                          
-                          "Lattazione" = "Lattazione", 
-                          "Biosicurezza"= "Biosicurezza",
-                          "Herd_Size"= "Herd Size", 
-                          "ParaT" = "ParaT", 
-                          "CAEV" = "CAEV", 
-                          "Agalassia" = "Agalassia"
-               )
-)
-
-ggdag(dag1, text_col = "blue",  node_size = 1)+
-  theme_dag_grid()
- 
-
-
-dag %>% dseparated("Biosicurezza",  "Produzione")
-
-
-adjustmentSets(dag)
-
-ggdag(dag, text_col = "blue",  node_size = 1)+
-  theme_dag_grid()
-
-ggdag_exogenous(dag0)
-ggdag_paths(dag, text = FALSE, use_labels = "label", shadow = TRUE)+
-  theme_dag_grid()
-
-
-ggdag_adjustment_set(dag, text_col = "blue")+  theme_dag_grid()
-
-ggdag_dseparated(dag1, controlling_for = c("ParaT", "CAEV", ""), 
-                 text_col = "blue", collider_lines = FALSE)+theme_dag_grid()
-
-
-
-dag <- dagify(Stato_Sanitario~Biosicurezza,
-              Produzione ~ Stato_Sanitario+Benessere
-              )
-
 
 #Modello nullo----
- 
 
 dt <- df %>% 
   mutate(Azienda = factor(azienda), 
@@ -112,13 +16,12 @@ dt <- df %>%
          WelfA = scale(areaA), 
          WelfB = scale(areaB), 
          WelfC = scale(areaC), 
-         Biosic = scale(biosic), 
          para = scale(`paratbc(%)`), 
-         agal = scale(`agalassia(%)`), 
+         malasc = scale(`mal.ascessi(%)`), 
          caev = scale(`caev(%)`), 
          hsize = scale(caprelatt), 
          WScore = scale(score)) %>% 
-  select(Azienda, azienda, Time2, Welfare,  para, agal, caev, Occasion,  kgcapo, Biosic, hsize,LATTAZIONE, 
+  select(Azienda, azienda, Time2, Welfare,  para, malasc, caev, Occasion,  kgcapo, hsize, LATTAZIONE, 
          WelfA, WelfB, WelfC )
   
 
@@ -300,6 +203,99 @@ Mx <- stan_lmer(formula = Welfare~ (1|azienda)+(1|Occasion)+Biosic,
 
 
 #OLDSTUFF-----
+
+#Modello DAG ----
+## specificazione del modello: 
+## outcome: kgcapo
+## predittore: benessere
+## altre varibili : stato sanitario, biosicurezza, dimensione allev, tipologia di lattazione ( lunga/ breve)
+#stato sanitario ( prev intrall di paratbc, caev , mastiti, pseudotub
+##             biosicurezza ( confondente?)
+
+# library(dagitty)
+# library(ggdag)
+
+
+
+# dag0 <- dagify(Produzione~Benessere+Lattazione+ Herd_Size +ParaT+CAEV+PseudoT,
+#               
+#               
+#           
+#               
+#               exposure =  "Benessere", 
+#               outcome = "Produzione", 
+#               
+#               labels = c("Produzione" = "Produzione", 
+#                          "Benessere" = "Benessere", 
+#                           
+#                          "Lattazione" = "Lattazione", 
+#                          "Biosicurezza"= "Biosicurezza",
+#                          "Herd_Size"= "Herd Size", 
+#                          "ParaT" = "ParaT", 
+#                          "CAEV" = "CAEV", 
+#                          "PseudoT" = "PseudoT"
+#               )
+# )
+# 
+# ggdag(dag0, text_col = "blue",  node_size = 1)+
+#   theme_dag_grid()
+# 
+# 
+# 
+# dag1 <- dagify(Produzione~Benessere+Lattazione+ Herd_Size + Biosicurezza,
+#                
+#                
+#                Biosicurezza~Herd_Size, 
+#                Benessere ~ParaT , 
+#                Benessere ~ CAEV , 
+#                Benessere ~ Agalassia,
+#                Benessere ~ Biosicurezza,
+#                
+#                exposure =  "Benessere", 
+#                outcome = "Produzione", 
+#                
+#                labels = c("Produzione" = "Produzione", 
+#                           "Benessere" = "Benessere", 
+#                           
+#                           "Lattazione" = "Lattazione", 
+#                           "Biosicurezza"= "Biosicurezza",
+#                           "Herd_Size"= "Herd Size", 
+#                           "ParaT" = "ParaT", 
+#                           "CAEV" = "CAEV", 
+#                           "Agalassia" = "Agalassia"
+#                )
+# )
+# 
+# ggdag(dag1, text_col = "blue",  node_size = 1)+
+#   theme_dag_grid()
+#  
+# 
+# 
+# dag %>% dseparated("Biosicurezza",  "Produzione")
+# 
+# 
+# adjustmentSets(dag)
+# 
+# ggdag(dag, text_col = "blue",  node_size = 1)+
+#   theme_dag_grid()
+# 
+# ggdag_exogenous(dag0)
+# ggdag_paths(dag, text = FALSE, use_labels = "label", shadow = TRUE)+
+#   theme_dag_grid()
+# 
+# 
+# ggdag_adjustment_set(dag, text_col = "blue")+  theme_dag_grid()
+# 
+# ggdag_dseparated(dag1, controlling_for = c("ParaT", "CAEV", ""), 
+#                  text_col = "blue", collider_lines = FALSE)+theme_dag_grid()
+# 
+# 
+# 
+# dag <- dagify(Stato_Sanitario~Biosicurezza,
+#               Produzione ~ Stato_Sanitario+Benessere
+#               )
+
+
 ####grafico
 df %>% 
   mutate(azienda=casefold(azienda, upper = TRUE)) %>% 
