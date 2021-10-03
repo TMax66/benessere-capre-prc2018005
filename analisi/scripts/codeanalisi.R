@@ -3,6 +3,7 @@ source("analisi/scripts/start.R")
 #Modello nullo----
 
 dt <- df %>% 
+  
   mutate(Azienda = factor(azienda), 
          Time = factor(paste(anno,mese)), 
          Time2 = factor(Time, levels = c(
@@ -22,7 +23,7 @@ dt <- df %>%
          hsize = scale(caprelatt), 
          WScore = scale(score)) %>% 
   select(Azienda, azienda, Time2, Welfare,  para, malasc, caev, Occasion,  kgcapo, hsize, LATTAZIONE, 
-         WelfA, WelfB, WelfC )
+         WelfA, WelfB, WelfC, WScore )
   
 
 
@@ -42,6 +43,10 @@ M3 <- stan_lmer(formula = kgcapo~WelfB+(1|azienda)+(1|Occasion),
                 seed = 349)
 
 M4 <- stan_lmer(formula = kgcapo~WelfC+(1|azienda)+(1|Occasion),   
+                data = dt,
+                seed = 349)
+
+M5 <- stan_lmer(formula = kgcapo~WScore+(1|azienda)+(1|Occasion),   
                 data = dt,
                 seed = 349)
 
@@ -65,26 +70,45 @@ pM4 <- model_parameters(M4, effects= "random")
 #                   seed = 349)
 
 ###Model con Welfare----
-M1.1 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE+hsize,   
-                  data = dt,
-                  seed = 349)
+ 
 
 
-M1.full <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+Biosic+LATTAZIONE+hsize+
-                      para+caev+agal,   
-                  data = dt,
-                  seed = 349)
+M1.full1 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+
+                       LATTAZIONE+
+                       hsize+
+                       para+
+                       caev+
+                       malasc,  
+                       data = dt,
+                       seed = 349)
+
+
+M2.full <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion)+LATTAZIONE+hsize+
+                       para+caev+malasc,   
+                     data = dt,
+                     seed = 349)
+
+M3.full <- stan_lmer(formula = kgcapo~WelfB+(1|azienda)+(1|Occasion)+LATTAZIONE+hsize+
+                       para+caev+malasc,   
+                     data = dt,
+                     seed = 349)
+
+M4.full <- stan_lmer(formula = kgcapo~WelfC+(1|azienda)+(1|Occasion)+LATTAZIONE+hsize+
+                       para+caev+malasc,   
+                     data = dt,
+                     seed = 349)
 
 
 
+modelli <- list(M1.full,M2.full,M3.full,M4.full)
+saveRDS(modelli, file = "modelli.RDS")
 
 
-
-
-looM1.1 <- loo(M1.1, k_threshold = 0.7)
+looM1 <- loo(M1, k_threshold = 0.7)
 looM1.full <- loo(M1.full,k_threshold = 0.7)
+looM1.full1 <- loo(M1.full1,k_threshold = 0.7)
 
-loo_compare(looM1.1, looM1.full)
+loo_compare(  looM1, looM1.full1)
 
 
 Mwelf <- stan_lmer(formula = Welfare~(1|azienda)+ para,  
