@@ -30,6 +30,14 @@ welfscore <- readRDS(here("analisi", "data", "processed", "welfscore.RDS"))
 lattazione <- read_excel("analisi/data/raw/LattazioneAziende.xlsx")
 
 
+# latte di massa dal dataset originale----
+
+massa <- read_excel("analisi/data/raw/prc2018005.xlsx", 
+                         sheet = "massa")
+
+
+
+
 #DATSET PER ANALISI---------------------------------------
 
 df <- az %>% 
@@ -55,7 +63,12 @@ df <- az %>%
   left_join(
     (welfscore %>% 
        select(azienda, score)), 
-    by = "azienda")
+    by = "azienda") %>% 
+  
+   left_join(
+    (massa %>% select(azienda, scc)), 
+    by = "azienda"
+  )
 
 
 
