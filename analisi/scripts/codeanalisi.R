@@ -1,6 +1,6 @@
 source("analisi/scripts/start.R")
 
-#Modello nullo----
+#preparazione dati----
 
 dt <- df %>% 
   
@@ -50,8 +50,8 @@ dt <- df %>%
 #                 data = dt,
 #                 seed = 349)
 
-plot(p_direction(M4))+scale_fill_brewer(palette="Blues")+
-  theme_ipsum_rc()
+#plot(p_direction(M4))+scale_fill_brewer(palette="Blues")+
+ # theme_ipsum_rc()
 
 
 # library(parameters)
@@ -77,13 +77,31 @@ M1.full1 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+
                        seed = 349)
 
 
+
+M1 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion),
+                      data = dt,
+                      seed = 349)
+
+
 M2.full <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion)+LATTAZIONE+hsize+
                        para+caev+malasc,   
                      data = dt,
                      seed = 349)
 
+
+M2 <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion),
+                     data = dt,
+                     seed = 349)
+
+
+
 M3.full <- stan_lmer(formula = kgcapo~WelfB+(1|azienda)+(1|Occasion)+LATTAZIONE+hsize+
                        para+caev+malasc,   
+                     data = dt,
+                     seed = 349)
+
+
+M3 <- stan_lmer(formula = kgcapo~WelfB+(1|azienda)+(1|Occasion),
                      data = dt,
                      seed = 349)
 
@@ -92,7 +110,9 @@ M4.full <- stan_lmer(formula = kgcapo~WelfC+(1|azienda)+(1|Occasion)+LATTAZIONE+
                      data = dt,
                      seed = 349)
 
-
+M4 <- stan_lmer(formula = kgcapo~WelfC+(1|azienda)+(1|Occasion),
+                     data = dt,
+                     seed = 349)
 
 modelli <- list(M1.full,M2.full,M3.full,M4.full)
 saveRDS(modelli, file = "modelli.RDS")
@@ -102,25 +122,34 @@ modelli <- readRDS("modelli.RDS")
 library(gt)
 
 
-M1 <- modelli[[1]]
+M1f <- modelli[[1]]
+
+M2f <- modelli[[2]]
 
 
-plot(p_direction(M1))+scale_fill_brewer(palette="Blues")+
+plot(p_direction(M1f))+scale_fill_brewer(palette="Blues")+
   theme_ipsum_rc()
 
-
-
-tM1 <- describe_posterior(
-  M1,
+risultati <- function(modello) 
+{    
+tM1f <- describe_posterior(
+  modello,
   centrality = "median",
-  test = c("rope", "p_direction")
+  test = c("p_direction")
 )
 
 
-tM1 %>% 
-  select(Parameter, Median, CI_low, CI_high, pd, ROPE_Percentage, Rhat, ESS) %>%
-  mutate_at(2:8, round, 2) %>% 
-  gt()# %>% 
+tM1f %>% 
+  select(Parameter, Median, CI_low, CI_high, pd) %>%
+  mutate_at(2:5, round, 2) %>% 
+  gt() %>% 
+  gtsave("ris.rtf")
+
+
+
+}  
+
+# %>% 
  # gtsave("RV.rtf")
 
 
