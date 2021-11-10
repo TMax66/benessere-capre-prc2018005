@@ -1397,3 +1397,16 @@ m1scc <- stan_lmer(formula = log(scc)~Welfare+(1|azienda)+(1|Occasion)+LATTAZION
 # # #   select(-mese) %>% 
 # # #   left_join(d2w,by=c("azienda")) %>% 
 # # #   left_join(d6[,-1],by=c("azienda")) 
+
+
+
+
+massa <- read_excel("analisi/data/raw/prc2018005.xlsx", 
+                    sheet = "massa")
+
+
+sc<-d2 %>% 
+  filter(azienda=="039BG069") %>% 
+  group_by(mese) %>% 
+  summarise(scc=geometric.mean(scc, na.rm=T))%>% 
+  ggplot(aes(x=mese, y=scc, group=1))+geom_point()+geom_line()
