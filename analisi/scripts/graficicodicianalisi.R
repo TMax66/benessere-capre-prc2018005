@@ -44,6 +44,40 @@ ggplot(aes(x=time, y = log(scc)))+
 
 
 
+par <- read_excel("analisi/data/raw/prc2018005.xlsx", 
+                    sheet = "par")
+
+par %>% 
+  rename(strongili =`strongiliGE (upg)`) %>% 
+  mutate(  
+  mese=recode(mese,
+              gennaio=1,febbraio=2,marzo=3,aprile=4,
+              maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+              ottobre=10, novembre=11,dicembre=12), 
+time=as.Date(paste(anno, mese, 15, sep="-")))%>%  
+  group_by(azienda, time, cat) %>% 
+    summarise(strongili=mean(strongili, na.rm=T))%>% 
+    ggplot(aes(x=time, y=strongili, color= cat))+geom_point()+geom_line()+facet_wrap(~azienda, scales = "free") +
+  theme_ipsum_rc()
+
+ 
+ 
+ 
+
+ par %>% 
+   rename(coccidi =`coccidi (upg)`) %>% 
+   mutate(  
+     mese=recode(mese,
+                 gennaio=1,febbraio=2,marzo=3,aprile=4,
+                 maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                 ottobre=10, novembre=11,dicembre=12), 
+     time=as.Date(paste(anno, mese, 15, sep="-")))%>%  
+   group_by(azienda, time, cat) %>% 
+   summarise(coccidi=mean(coccidi, na.rm=T))%>% 
+   ggplot(aes(x=time, y=coccidi, color= cat))+geom_point()+geom_line()+facet_wrap(~azienda, scales = "free") +
+   theme_ipsum_rc()
+
+ 
 
 
 
@@ -57,32 +91,32 @@ ggplot(aes(x=time, y = log(scc)))+
 
 
 
-cb<-d2 %>% 
-  filter(azienda=="039BG069") %>% 
-  group_by(mese) %>% 
-  summarise(cbt=geometric.mean(cbt, na.rm=T))%>% 
-  ggplot(aes(x=mese, y=cbt, group=1))+geom_point()+geom_line()
-pr<-d2 %>% 
-  filter(azienda=="039BG069") %>% 
-  group_by(mese) %>% 
-  summarise(proteine=mean(scc, na.rm=T))%>% 
-  ggplot(aes(x=mese, y=proteine, group=1))+geom_point()+geom_line()
-gr<-d2 %>% 
-  filter(azienda=="039BG069") %>% 
-  group_by(mese) %>% 
-  summarise(grasso= mean(grasso, na.rm=T))%>% 
-  ggplot(aes(x=mese, y=grasso, group=1))+geom_point()+geom_line()
-lt<-d2 %>% 
-  filter(azienda=="039BG069") %>% 
-  group_by(mese) %>% 
-  summarise(lattosio=geometric.mean(lattosio, na.rm=T))%>% 
-  ggplot(aes(x=mese, y=lattosio, group=1))+geom_point()+geom_line()
-cs<-d2 %>% 
-  filter(azienda=="039BG069") %>% 
-  group_by(mese) %>% 
-  summarise(caseina=mean(scc, na.rm=T))%>% 
-  ggplot(aes(x=mese, y=caseina, group=1))+geom_point()+geom_line()
-
-
-
-plot_grid(sc,cb,pr,gr,lt,cs,ncol = 3)
+# cb<-d2 %>% 
+#   filter(azienda=="039BG069") %>% 
+#   group_by(mese) %>% 
+#   summarise(cbt=geometric.mean(cbt, na.rm=T))%>% 
+#   ggplot(aes(x=mese, y=cbt, group=1))+geom_point()+geom_line()
+# pr<-d2 %>% 
+#   filter(azienda=="039BG069") %>% 
+#   group_by(mese) %>% 
+#   summarise(proteine=mean(scc, na.rm=T))%>% 
+#   ggplot(aes(x=mese, y=proteine, group=1))+geom_point()+geom_line()
+# gr<-d2 %>% 
+#   filter(azienda=="039BG069") %>% 
+#   group_by(mese) %>% 
+#   summarise(grasso= mean(grasso, na.rm=T))%>% 
+#   ggplot(aes(x=mese, y=grasso, group=1))+geom_point()+geom_line()
+# lt<-d2 %>% 
+#   filter(azienda=="039BG069") %>% 
+#   group_by(mese) %>% 
+#   summarise(lattosio=geometric.mean(lattosio, na.rm=T))%>% 
+#   ggplot(aes(x=mese, y=lattosio, group=1))+geom_point()+geom_line()
+# cs<-d2 %>% 
+#   filter(azienda=="039BG069") %>% 
+#   group_by(mese) %>% 
+#   summarise(caseina=mean(scc, na.rm=T))%>% 
+#   ggplot(aes(x=mese, y=caseina, group=1))+geom_point()+geom_line()
+# 
+# 
+# 
+# plot_grid(sc,cb,pr,gr,lt,cs,ncol = 3)

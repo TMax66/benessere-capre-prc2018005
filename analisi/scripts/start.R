@@ -35,7 +35,8 @@ lattazione <- read_excel("analisi/data/raw/LattazioneAziende.xlsx")
 massa <- read_excel("analisi/data/raw/prc2018005.xlsx", 
                          sheet = "massa")
 
-
+par <- read_excel("analisi/data/raw/prc2018005.xlsx", 
+                  sheet = "par")
 
 
 #DATSET PER ANALISI---------------------------------------
