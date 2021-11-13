@@ -78,7 +78,7 @@ M1.full1 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion)+
 
 
 
-M1 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion),
+#M1 <- stan_lmer(formula = kgcapo~Welfare+(1|azienda)+(1|Occasion),
                       data = dt,
                       seed = 349)
 
@@ -89,7 +89,7 @@ M2.full <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion)+LATTAZIONE+
                      seed = 349)
 
 
-M2 <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion),
+#M2 <- stan_lmer(formula = kgcapo~WelfA+(1|azienda)+(1|Occasion),
                      data = dt,
                      seed = 349)
 
@@ -101,7 +101,7 @@ M3.full <- stan_lmer(formula = kgcapo~WelfB+(1|azienda)+(1|Occasion)+LATTAZIONE+
                      seed = 349)
 
 
-M3 <- stan_lmer(formula = kgcapo~WelfB+(1|azienda)+(1|Occasion),
+#M3 <- stan_lmer(formula = kgcapo~WelfB+(1|azienda)+(1|Occasion),
                      data = dt,
                      seed = 349)
 
@@ -110,7 +110,7 @@ M4.full <- stan_lmer(formula = kgcapo~WelfC+(1|azienda)+(1|Occasion)+LATTAZIONE+
                      data = dt,
                      seed = 349)
 
-M4 <- stan_lmer(formula = kgcapo~WelfC+(1|azienda)+(1|Occasion),
+#M4 <- stan_lmer(formula = kgcapo~WelfC+(1|azienda)+(1|Occasion),
                      data = dt,
                      seed = 349)
 
@@ -138,16 +138,21 @@ tM1f <- describe_posterior(
   test = c("p_direction")
 )
 
-
 tM1f %>% 
   select(Parameter, Median, CI_low, CI_high, pd) %>%
   mutate_at(2:5, round, 2) %>% 
   gt() %>% 
   gtsave("ris.rtf")
 
-
-
 }  
+
+risultati(modelli[[4]])
+
+
+
+prior_summary(modelli[[1]])
+
+
 
 # %>% 
  # gtsave("RV.rtf")
@@ -1404,9 +1409,31 @@ m1scc <- stan_lmer(formula = log(scc)~Welfare+(1|azienda)+(1|Occasion)+LATTAZION
 massa <- read_excel("analisi/data/raw/prc2018005.xlsx", 
                     sheet = "massa")
 
+urea <- massa %>% 
+  select(azienda, ureaFTIR, ureapHm) %>% 
+  na.omit()
 
-sc<-d2 %>% 
-  filter(azienda=="039BG069") %>% 
-  group_by(mese) %>% 
-  summarise(scc=geometric.mean(scc, na.rm=T))%>% 
-  ggplot(aes(x=mese, y=scc, group=1))+geom_point()+geom_line()
+
+urea <- urea %>% 
+  pivot_longer(cols = 2:3,   names_to = "metodo", values_to = "urea") %>% 
+  select(-azienda) %>% data.frame()
+  
+Meth(urea)
+
+library(blandr)
+ss <- blandr.statistics(urea$ureaFTIR, urea$ureapHm)
+summary(ss)
+
+blandr.plot.ggplot(ss, method1name = "FTIR", method2name = "pH", 
+                   plotTitle = "Bland-Altman plot: confronto tra FTIR e pH per la determinazione di Urea nel latte di massa")+theme_bw()+
+  labs(x= "Medie", y = "Differenza")
+ 
+library(ggplot2)
+library(BlandAltmanLeh)
+bland.altman.plot(urea$ureaFTIR, urea$ureapHm, graph.sys = "ggplot2")
+
+
+
+library(ggExtra)
+print(ggMarginal(bland.altman.plot(urea$ureaFTIR, urea$ureapHm,graph.sys = "ggplot2"),
+                 type = "histogram", size=4))

@@ -1,281 +1,361 @@
 ---
 title: "PRC2019005- analisi preliminari"
 output:
+  word_document: default
+  html_notebook: default
   html_document:
     df_print: paged
-  html_notebook: default
-  word_document: default
 ---
 
-```{r  include=FALSE}
-library("tidyverse")
-library("DT")
-library("googledrive")
-library("googlesheets4")
-library("lubridate")
-library("here")
-library("hrbrthemes")
 
-az <- readRDS(here("analisi", "data", "processed", "azienda.RDS"))
-milk <- readRDS(here("analisi", "data", "processed", "massa.RDS"))
-sanit <- readRDS(here("analisi", "data", "processed", "sanitaria.RDS"))
-parass <- readRDS(here("analisi", "data", "processed", "parassiti.RDS"))
-diagn <- readRDS(here("analisi", "data", "processed", "diagnostica.RDS"))
-ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS"))
-
-```
-
-## Introduzione
-
-Di seguito è riportata un'analisi preliminare descrittiva della relazione tra il livello di benessere misurato su una scala da 0 a 100 e parametri produttivi, riproduttivi e sanitari in aziende caprine  da latte. Per ogni parametro è riportato un grafico costituito da quattro panel corrispondente a quattro livelli di benessere ottenuti calcolando i  4 quartili della distribuzione della scala di benessere, in particolare: 
-
-* primo quartile = (39.6-59]
-* secondo quartile = (59-65.4]
-* terzo quartile = (65.4-75.9]
-* quarto quartile = (75.9-90.7]
-
-In ogni panel è riportato l'andamento nel tempo del parametro produttivo/riproduttivo o sanitario analizzato. Sono riportati i tracciati come punto-linea delle singole aziende è una stima smoothed come descrizione del trend osservato. La fascia grigia indica la variabilità della stima (errore standard). 
+# Analisi statistica
 
 
-### Parametri produttivi
 
-**Produzione di latte**
-```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile della produzione di latte (kg/capo)", fig.height=5, fig.width=15, message=FALSE, warning=FALSE}
-  
-az %>% 
-  mutate(azienda=casefold(azienda, upper = TRUE),
-         mese=recode(mese,
-                     gennaio=1,febbraio=2,marzo=3,aprile=4,
-                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                     ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>%
-  drop_na(kgcapo) %>% 
-  left_join( (ben %>% 
-                mutate(azienda=casefold(azienda, upper = TRUE),
-                       mese=recode(mese,
-                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
-                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                                   ottobre=10, novembre=11,dicembre=12), 
-                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-                filter(anno != 2020 ) %>% 
-                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
-  ), by = "azienda") %>% 
-  drop_na(bencat) %>% 
-  ggplot(aes(x=time.x, y = kgcapo))+  
-  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
-  geom_line(aes(x=time.x, y = kgcapo, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
-  theme_ipsum_rc()
-```
+## Metodi
+
+### Associazione grado di benessere e livello produttivo
+
+L’associazione tra il grado di benessere e il livello produttivo è stato indagato mediante l’utilizzo di modelli lineari bayesiani utilizzando come variabile outcome la produzione di latte espressa in kg/capo misurata per ogni azienda ad intervalli mensili per un periodo variabile da 6 a 24 mesi e come variabile indipendente d’interesse lo score di benessere calcolato mediante l’applicazione della checkist.XXXXX. Sono stati studiati differenti modelli che hanno permesso di esplorare l’associazione tra lo score complessivo e quello parziale ottenuto dalle diverse aree della check list per cogliere meglio quali item della valutazione del benessere fossero più rilevanti nella determinazione del grado e direzione dell’associazione tra benessere e produzione.  
+
+Considerando che il livello produttivo nelle aziende di capre da latte è determinato da variabili come: dimensione dell’azienda, tipologia di lattazione, prevalenza di patologie infettive quali la paratbc, la caev, la pseudotubercolosi, queste variabili sono state aggiunte nel modello per ottenere una stima dell’associazione benessere/produzione controllata per le variabili summenzionate. 
+
+In tutti i modelli la componente della variabilità dell’outcome dovuta alle misure ripetute nel tempo per ogni azienda è stata controllata introducendo sia l’azienda che il momento del campionamento come variabili ad effetto casuale nel contesto di modelli ad effetti misti. 
+
+La stima di tutti i parametri non noti dei modelli ( coefficienti di regressione, intercette, errore residuo) è stata ottenuta mediante     campionamento con l'algoritmo Hamiltonian Monte Carlo  (HCM ) utilizzando quattro catene, con 4000 iterazioni di cui 1000 di warmup ( escluse dopo il campionamento), utilizzato il pacchetto rstanarms come interfaccia del linguaggio STAN  implementato in R nel pacchetto rstan [@rstan]. Tutte le variabili indipendenti quantitative sono state standardizzate in accordo a quanto suggerisce  [@gelman2020regression], sia per una maggior interpretabilità delle stime dei coefficienti di regressione sia per una migliore performance dell'algoritmo HCM [@mcelreath2020statistical] sia per una miglior utilizzo delle priors del modello.  
+
+La struttura del modello lineare adottato è la seguente: 
+
+ProdLatte  
 
 
-**Carica batterica totale**
-```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile della Carica batterica totale", fig.height=5, fig.width=15, message=FALSE, warning=FALSE}
 
-milk %>% 
-  mutate(azienda=casefold(azienda, upper = TRUE),
-         mese=recode(mese,
-                     gennaio=1,febbraio=2,marzo=3,aprile=4,
-                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                     ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-  left_join( (ben %>% 
-                mutate(azienda=casefold(azienda, upper = TRUE),
-                       mese=recode(mese,
-                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
-                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                                   ottobre=10, novembre=11,dicembre=12), 
-                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-                filter(anno != 2020 ) %>% 
-                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
-  ), by = "azienda") %>% 
-  drop_na(bencat) %>% 
-  ggplot(aes(x=time.x, y = log(cbt)))+  
-  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
-  geom_line(aes(x=time.x, y = log(cbt), group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
-  theme_ipsum_rc()
-```
+$$Prod\sim Normal(\mu,\sigma)$$
+$$\mu = \alpha_{\text{azienda}} + \alpha_{\text{time}}  +  \beta*X $$
 
-**Cellule somatiche**
-```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile delle Cellule Somatiche", fig.height=5, fig.width=15, message=FALSE, warning=FALSE}
 
-milk %>% 
-  mutate(azienda=casefold(azienda, upper = TRUE),
-         mese=recode(mese,
-                     gennaio=1,febbraio=2,marzo=3,aprile=4,
-                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                     ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-  left_join( (ben %>% 
-                mutate(azienda=casefold(azienda, upper = TRUE),
-                       mese=recode(mese,
-                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
-                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                                   ottobre=10, novembre=11,dicembre=12), 
-                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-                filter(anno != 2020 ) %>% 
-                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
-  ), by = "azienda") %>% 
-  drop_na(bencat) %>% 
-  ggplot(aes(x=time.x, y = log(scc)))+  
-  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
-  geom_line(aes(x=time.x, y = log(scc), group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
-  theme_ipsum_rc()
-```
 
-**Proteine**
-```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile delle Proteine", fig.height=5, fig.width=15, message=FALSE, warning=FALSE}
 
-milk %>% 
-  mutate(azienda=casefold(azienda, upper = TRUE),
-         mese=recode(mese,
-                     gennaio=1,febbraio=2,marzo=3,aprile=4,
-                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                     ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-  left_join( (ben %>% 
-                mutate(azienda=casefold(azienda, upper = TRUE),
-                       mese=recode(mese,
-                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
-                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                                   ottobre=10, novembre=11,dicembre=12), 
-                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-                filter(anno != 2020 ) %>% 
-                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
-  ), by = "azienda") %>% 
-  drop_na(bencat) %>% 
-  ggplot(aes(x=time.x, y = proteine))+  
-  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
-  geom_line(aes(x=time.x, y = proteine, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
-  theme_ipsum_rc()
 
-```
+Dove Prod, indica il livello produttivo espresso in kg di latte/capo di cui si assume una distribuzione normale con media $$\mu$$  e deviazione standard $\sigma$. 
+$\mu$ è modellato mediante un modello lineare ad effetti misti che prevede due intercette variabili $\alpha_{\text{azienda}}$  e  $\alpha_{\text{time}}$ e una matrice $\Beta$ di effetti dei predittori descritti dalla matrice X. I predittori del modello sono: 
+- grado di benessere
+- dimensione dell'azienda
+- tipologia di lattazione (lunga vs corta)
+- sieroprevalenza intraziendale di paratubercolosi
+- sieroprevalenza intraziendale di pseudotubercolosi
+- sieroprevalenza intraziendale di caev
 
-**Caseina**
-```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile della Caseina", fig.height=5, fig.width=15, message=FALSE, warning=FALSE}
-milk %>% 
-  mutate(azienda=casefold(azienda, upper = TRUE),
-         mese=recode(mese,
-                     gennaio=1,febbraio=2,marzo=3,aprile=4,
-                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                     ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-  left_join( (ben %>% 
-                mutate(azienda=casefold(azienda, upper = TRUE),
-                       mese=recode(mese,
-                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
-                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                                   ottobre=10, novembre=11,dicembre=12), 
-                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-                filter(anno != 2020 ) %>% 
-                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
-  ), by = "azienda") %>% 
-  drop_na(bencat) %>% 
-  ggplot(aes(x=time.x, y = caseina))+  
-  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
-  geom_line(aes(x=time.x, y = caseina, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
-  theme_ipsum_rc()
-```
+Per i parametri ignoti del modello ($\alpha$, $\beta$, e $\sigma$) sono state assunte distribuzioni a priori debolmente informative utilizzando le priors di default proposte dalla funzione stan_lmer del pacchetto rstanarm. 
 
-**Grasso**
-```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile del Grasso", fig.height=5, fig.width=15, message=FALSE, warning=FALSE}
-milk %>% 
-  mutate(azienda=casefold(azienda, upper = TRUE),
-         mese=recode(mese,
-                     gennaio=1,febbraio=2,marzo=3,aprile=4,
-                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                     ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-  left_join( (ben %>% 
-                mutate(azienda=casefold(azienda, upper = TRUE),
-                       mese=recode(mese,
-                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
-                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                                   ottobre=10, novembre=11,dicembre=12), 
-                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-                filter(anno != 2020 ) %>% 
-                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
-  ), by = "azienda") %>% 
-  drop_na(bencat) %>% 
-  ggplot(aes(x=time.x, y = grasso))+  
-  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
-  geom_line(aes(x=time.x, y = grasso, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
-  theme_ipsum_rc()
-```
+Si è proceduto ad adattare  i seguenti modelli:
 
-**Lattosio**
-```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile del Lattosio", fig.height=5, fig.width=15, message=FALSE, warning=FALSE}
-milk %>% 
-  mutate(azienda=casefold(azienda, upper = TRUE),
-         mese=recode(mese,
-                     gennaio=1,febbraio=2,marzo=3,aprile=4,
-                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                     ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-  left_join( (ben %>% 
-                mutate(azienda=casefold(azienda, upper = TRUE),
-                       mese=recode(mese,
-                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
-                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                                   ottobre=10, novembre=11,dicembre=12), 
-                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-                filter(anno != 2020 ) %>% 
-                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
-  ), by = "azienda") %>% 
-  drop_na(bencat) %>% 
-  ggplot(aes(x=time.x, y = lattosio))+  
-  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
-  geom_line(aes(x=time.x, y = lattosio, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
-  theme_ipsum_rc()
-```
+-modello 1 : $$\mu =  \alpha+\alpha_{\text{azienda}} + \alpha_{\text{time}}  +  \beta_1*GWelfScore+  
+\beta_2*HerdSize+ \beta_3*Lattazione + \beta_4*paraTBC+ \beta_5*CAEV+ \beta_6*pseudoTBC$$
+- modello 2: $$\mu =  \alpha+\alpha_{\text{azienda}} + \alpha_{\text{time}}  +  \beta_1*WelfScoreA+  
+\beta_2*HerdSize+ \beta_3*Lattazione + \beta_4*paraTBC+ \beta_5*CAEV+ \beta_6*pseudoTBC$$
+- modello 3 : $$\mu =  \alpha+\alpha_{\text{azienda}} + \alpha_{\text{time}}  +\beta_1*BWelfScore+  
+\beta_2*HerdSize+ \beta_3*Lattazione + \beta_4*paraTBC+ \beta_5*CAEV+ \beta_6*pseudoTBC$$
+- modello 4: $$\mu =  \alpha+\alpha_{\text{azienda}} + \alpha_{\text{time}}  +  \beta_1*CWelfScore+  
+\beta_2*HerdSize+ \beta_3*Lattazione + \beta_4*paraTBC+ \beta_5*CAEV+ \beta_6*pseudoTBC$$
 
-**Urea FTIR**
-```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile dell'urea (metodo FTIR)", fig.height=5, fig.width=15, message=FALSE, warning=FALSE}
-milk %>% 
-  mutate(azienda=casefold(azienda, upper = TRUE),
-         mese=recode(mese,
-                     gennaio=1,febbraio=2,marzo=3,aprile=4,
-                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                     ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-  left_join( (ben %>% 
-                mutate(azienda=casefold(azienda, upper = TRUE),
-                       mese=recode(mese,
-                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
-                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                                   ottobre=10, novembre=11,dicembre=12), 
-                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-                filter(anno != 2020 ) %>% 
-                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
-  ), by = "azienda") %>% 
-  drop_na(bencat) %>% 
-  ggplot(aes(x=time.x, y = ureaFTIR))+  
-  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
-  geom_line(aes(x=time.x, y = ureaFTIR, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
-  theme_ipsum_rc()
-```
+dove GWelfscore, WelfscoreA, WelfscoreB e WelfscoreC, indicano rispettivamente, il punteggio complessivo della scala del benesse, e quelli parziali della componente A, B e C della scala.
 
-**Urea pHm**
-```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile dell'Urea (metodo pHm)", fig.height=5, fig.width=15, message=FALSE, warning=FALSE}
-milk %>% 
-  mutate(azienda=casefold(azienda, upper = TRUE),
-         mese=recode(mese,
-                     gennaio=1,febbraio=2,marzo=3,aprile=4,
-                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                     ottobre=10, novembre=11,dicembre=12), 
-         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-  left_join( (ben %>% 
-                mutate(azienda=casefold(azienda, upper = TRUE),
-                       mese=recode(mese,
-                                   gennaio=1,febbraio=2,marzo=3,aprile=4,
-                                   maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
-                                   ottobre=10, novembre=11,dicembre=12), 
-                       time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
-                filter(anno != 2020 ) %>% 
-                mutate(bencat = cut(complben, quantile(complben), include.lowest = F))
-  ), by = "azienda") %>% 
-  drop_na(bencat) %>% 
-  ggplot(aes(x=time.x, y = ureapHm))+  
-  facet_wrap(bencat~., nrow = 1) + stat_smooth()+
-  geom_line(aes(x=time.x, y = ureapHm, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+
-  theme_ipsum_rc()
-```
+Le stime a posteriori dei parametri dei modelli   sono state quindi riassunte in forma tabellare mediante la mediana della distribuzione a posteriori, gli intervalli di credibilità al 95%, la Probability Direction (PD), come  misura dell'importanza statistica degli effetti dei parametri, secondo quanto riportato da  [@makowski2019indices]. 
+
+
+
+### Concordanza tra FTIR e ph nella determinazione di urea nel latte di massa
+
+Il grado di concordanza tra i due metodi è stato valutato mediante l'utilizzo del grafico di Bland-Altman che confronta le differenze tra i risultati ottenuti dai due metodi rispetto alla media di due risultati. La media delle differenze è una misura diretta del grado di disaccordo tra i metodi (bias). In teoria se i due metodi concordano perfettamente le differenze dovrebbero essere pari a 0 e cosi anche le medie, in tutto il range di valori che l'analita misurato può esprimersi.  Il metodo permette anche di definire i limiti di agreement tra i due metodi, mediante la stima  dell'intervallo di confidenza della media delle differenze. Il metodo non permette di definire però l'accettabilità o meno di questi limiti.
+
+
+
+## Risultati
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- ```{r  include=FALSE} -->
+<!-- library("tidyverse") -->
+<!-- library("DT") -->
+<!-- library("googledrive") -->
+<!-- library("googlesheets4") -->
+<!-- library("lubridate") -->
+<!-- library("here") -->
+<!-- library("hrbrthemes") -->
+
+<!-- az <- readRDS(here("analisi", "data", "processed", "azienda.RDS")) -->
+<!-- milk <- readRDS(here("analisi", "data", "processed", "massa.RDS")) -->
+<!-- sanit <- readRDS(here("analisi", "data", "processed", "sanitaria.RDS")) -->
+<!-- parass <- readRDS(here("analisi", "data", "processed", "parassiti.RDS")) -->
+<!-- diagn <- readRDS(here("analisi", "data", "processed", "diagnostica.RDS")) -->
+<!-- ben <- readRDS(here("analisi", "data", "processed", "benessere.RDS")) -->
+
+<!-- ``` -->
+
+<!-- ## Introduzione -->
+
+<!-- Di seguito è riportata un'analisi preliminare descrittiva della relazione tra il livello di benessere misurato su una scala da 0 a 100 e parametri produttivi, riproduttivi e sanitari in aziende caprine  da latte. Per ogni parametro è riportato un grafico costituito da quattro panel corrispondente a quattro livelli di benessere ottenuti calcolando i  4 quartili della distribuzione della scala di benessere, in particolare:  -->
+
+<!-- * primo quartile = (39.6-59] -->
+<!-- * secondo quartile = (59-65.4] -->
+<!-- * terzo quartile = (65.4-75.9] -->
+<!-- * quarto quartile = (75.9-90.7] -->
+
+<!-- In ogni panel è riportato l'andamento nel tempo del parametro produttivo/riproduttivo o sanitario analizzato. Sono riportati i tracciati come punto-linea delle singole aziende è una stima smoothed come descrizione del trend osservato. La fascia grigia indica la variabilità della stima (errore standard).  -->
+
+
+<!-- ### Parametri produttivi -->
+
+<!-- **Produzione di latte** -->
+<!-- ```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile della produzione di latte (kg/capo)", fig.height=5, fig.width=15, message=FALSE, warning=FALSE} -->
+
+<!-- az %>%  -->
+<!--   mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--          mese=recode(mese, -->
+<!--                      gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                      ottobre=10, novembre=11,dicembre=12),  -->
+<!--          time=as.Date(paste(anno, mese, 15, sep="-"))) %>% -->
+<!--   drop_na(kgcapo) %>%  -->
+<!--   left_join( (ben %>%  -->
+<!--                 mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--                        mese=recode(mese, -->
+<!--                                    gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                                    maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                                    ottobre=10, novembre=11,dicembre=12),  -->
+<!--                        time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--                 filter(anno != 2020 ) %>%  -->
+<!--                 mutate(bencat = cut(complben, quantile(complben), include.lowest = F)) -->
+<!--   ), by = "azienda") %>%  -->
+<!--   drop_na(bencat) %>%  -->
+<!--   ggplot(aes(x=time.x, y = kgcapo))+   -->
+<!--   facet_wrap(bencat~., nrow = 1) + stat_smooth()+ -->
+<!--   geom_line(aes(x=time.x, y = kgcapo, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+ -->
+<!--   theme_ipsum_rc() -->
+<!-- ``` -->
+
+
+<!-- **Carica batterica totale** -->
+<!-- ```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile della Carica batterica totale", fig.height=5, fig.width=15, message=FALSE, warning=FALSE} -->
+
+<!-- milk %>%  -->
+<!--   mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--          mese=recode(mese, -->
+<!--                      gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                      ottobre=10, novembre=11,dicembre=12),  -->
+<!--          time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--   left_join( (ben %>%  -->
+<!--                 mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--                        mese=recode(mese, -->
+<!--                                    gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                                    maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                                    ottobre=10, novembre=11,dicembre=12),  -->
+<!--                        time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--                 filter(anno != 2020 ) %>%  -->
+<!--                 mutate(bencat = cut(complben, quantile(complben), include.lowest = F)) -->
+<!--   ), by = "azienda") %>%  -->
+<!--   drop_na(bencat) %>%  -->
+<!--   ggplot(aes(x=time.x, y = log(cbt)))+   -->
+<!--   facet_wrap(bencat~., nrow = 1) + stat_smooth()+ -->
+<!--   geom_line(aes(x=time.x, y = log(cbt), group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+ -->
+<!--   theme_ipsum_rc() -->
+<!-- ``` -->
+
+<!-- **Cellule somatiche** -->
+<!-- ```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile delle Cellule Somatiche", fig.height=5, fig.width=15, message=FALSE, warning=FALSE} -->
+
+<!-- milk %>%  -->
+<!--   mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--          mese=recode(mese, -->
+<!--                      gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                      ottobre=10, novembre=11,dicembre=12),  -->
+<!--          time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--   left_join( (ben %>%  -->
+<!--                 mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--                        mese=recode(mese, -->
+<!--                                    gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                                    maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                                    ottobre=10, novembre=11,dicembre=12),  -->
+<!--                        time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--                 filter(anno != 2020 ) %>%  -->
+<!--                 mutate(bencat = cut(complben, quantile(complben), include.lowest = F)) -->
+<!--   ), by = "azienda") %>%  -->
+<!--   drop_na(bencat) %>%  -->
+<!--   ggplot(aes(x=time.x, y = log(scc)))+   -->
+<!--   facet_wrap(bencat~., nrow = 1) + stat_smooth()+ -->
+<!--   geom_line(aes(x=time.x, y = log(scc), group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+ -->
+<!--   theme_ipsum_rc() -->
+<!-- ``` -->
+
+<!-- **Proteine** -->
+<!-- ```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile delle Proteine", fig.height=5, fig.width=15, message=FALSE, warning=FALSE} -->
+
+<!-- milk %>%  -->
+<!--   mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--          mese=recode(mese, -->
+<!--                      gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                      ottobre=10, novembre=11,dicembre=12),  -->
+<!--          time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--   left_join( (ben %>%  -->
+<!--                 mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--                        mese=recode(mese, -->
+<!--                                    gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                                    maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                                    ottobre=10, novembre=11,dicembre=12),  -->
+<!--                        time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--                 filter(anno != 2020 ) %>%  -->
+<!--                 mutate(bencat = cut(complben, quantile(complben), include.lowest = F)) -->
+<!--   ), by = "azienda") %>%  -->
+<!--   drop_na(bencat) %>%  -->
+<!--   ggplot(aes(x=time.x, y = proteine))+   -->
+<!--   facet_wrap(bencat~., nrow = 1) + stat_smooth()+ -->
+<!--   geom_line(aes(x=time.x, y = proteine, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+ -->
+<!--   theme_ipsum_rc() -->
+
+<!-- ``` -->
+
+<!-- **Caseina** -->
+<!-- ```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile della Caseina", fig.height=5, fig.width=15, message=FALSE, warning=FALSE} -->
+<!-- milk %>%  -->
+<!--   mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--          mese=recode(mese, -->
+<!--                      gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                      ottobre=10, novembre=11,dicembre=12),  -->
+<!--          time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--   left_join( (ben %>%  -->
+<!--                 mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--                        mese=recode(mese, -->
+<!--                                    gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                                    maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                                    ottobre=10, novembre=11,dicembre=12),  -->
+<!--                        time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--                 filter(anno != 2020 ) %>%  -->
+<!--                 mutate(bencat = cut(complben, quantile(complben), include.lowest = F)) -->
+<!--   ), by = "azienda") %>%  -->
+<!--   drop_na(bencat) %>%  -->
+<!--   ggplot(aes(x=time.x, y = caseina))+   -->
+<!--   facet_wrap(bencat~., nrow = 1) + stat_smooth()+ -->
+<!--   geom_line(aes(x=time.x, y = caseina, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+ -->
+<!--   theme_ipsum_rc() -->
+<!-- ``` -->
+
+<!-- **Grasso** -->
+<!-- ```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile del Grasso", fig.height=5, fig.width=15, message=FALSE, warning=FALSE} -->
+<!-- milk %>%  -->
+<!--   mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--          mese=recode(mese, -->
+<!--                      gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                      ottobre=10, novembre=11,dicembre=12),  -->
+<!--          time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--   left_join( (ben %>%  -->
+<!--                 mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--                        mese=recode(mese, -->
+<!--                                    gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                                    maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                                    ottobre=10, novembre=11,dicembre=12),  -->
+<!--                        time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--                 filter(anno != 2020 ) %>%  -->
+<!--                 mutate(bencat = cut(complben, quantile(complben), include.lowest = F)) -->
+<!--   ), by = "azienda") %>%  -->
+<!--   drop_na(bencat) %>%  -->
+<!--   ggplot(aes(x=time.x, y = grasso))+   -->
+<!--   facet_wrap(bencat~., nrow = 1) + stat_smooth()+ -->
+<!--   geom_line(aes(x=time.x, y = grasso, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+ -->
+<!--   theme_ipsum_rc() -->
+<!-- ``` -->
+
+<!-- **Lattosio** -->
+<!-- ```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile del Lattosio", fig.height=5, fig.width=15, message=FALSE, warning=FALSE} -->
+<!-- milk %>%  -->
+<!--   mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--          mese=recode(mese, -->
+<!--                      gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                      ottobre=10, novembre=11,dicembre=12),  -->
+<!--          time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--   left_join( (ben %>%  -->
+<!--                 mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--                        mese=recode(mese, -->
+<!--                                    gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                                    maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                                    ottobre=10, novembre=11,dicembre=12),  -->
+<!--                        time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--                 filter(anno != 2020 ) %>%  -->
+<!--                 mutate(bencat = cut(complben, quantile(complben), include.lowest = F)) -->
+<!--   ), by = "azienda") %>%  -->
+<!--   drop_na(bencat) %>%  -->
+<!--   ggplot(aes(x=time.x, y = lattosio))+   -->
+<!--   facet_wrap(bencat~., nrow = 1) + stat_smooth()+ -->
+<!--   geom_line(aes(x=time.x, y = lattosio, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+ -->
+<!--   theme_ipsum_rc() -->
+<!-- ``` -->
+
+<!-- **Urea FTIR** -->
+<!-- ```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile dell'urea (metodo FTIR)", fig.height=5, fig.width=15, message=FALSE, warning=FALSE} -->
+<!-- milk %>%  -->
+<!--   mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--          mese=recode(mese, -->
+<!--                      gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                      ottobre=10, novembre=11,dicembre=12),  -->
+<!--          time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--   left_join( (ben %>%  -->
+<!--                 mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--                        mese=recode(mese, -->
+<!--                                    gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                                    maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                                    ottobre=10, novembre=11,dicembre=12),  -->
+<!--                        time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--                 filter(anno != 2020 ) %>%  -->
+<!--                 mutate(bencat = cut(complben, quantile(complben), include.lowest = F)) -->
+<!--   ), by = "azienda") %>%  -->
+<!--   drop_na(bencat) %>%  -->
+<!--   ggplot(aes(x=time.x, y = ureaFTIR))+   -->
+<!--   facet_wrap(bencat~., nrow = 1) + stat_smooth()+ -->
+<!--   geom_line(aes(x=time.x, y = ureaFTIR, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+ -->
+<!--   theme_ipsum_rc() -->
+<!-- ``` -->
+
+<!-- **Urea pHm** -->
+<!-- ```{r echo=FALSE, fig.align=" center ", fig.cap="Andamento mensile dell'Urea (metodo pHm)", fig.height=5, fig.width=15, message=FALSE, warning=FALSE} -->
+<!-- milk %>%  -->
+<!--   mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--          mese=recode(mese, -->
+<!--                      gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                      ottobre=10, novembre=11,dicembre=12),  -->
+<!--          time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--   left_join( (ben %>%  -->
+<!--                 mutate(azienda=casefold(azienda, upper = TRUE), -->
+<!--                        mese=recode(mese, -->
+<!--                                    gennaio=1,febbraio=2,marzo=3,aprile=4, -->
+<!--                                    maggio=5, giugno=6, luglio=7, agosto=8, settembre=9, -->
+<!--                                    ottobre=10, novembre=11,dicembre=12),  -->
+<!--                        time=as.Date(paste(anno, mese, 15, sep="-"))) %>%  -->
+<!--                 filter(anno != 2020 ) %>%  -->
+<!--                 mutate(bencat = cut(complben, quantile(complben), include.lowest = F)) -->
+<!--   ), by = "azienda") %>%  -->
+<!--   drop_na(bencat) %>%  -->
+<!--   ggplot(aes(x=time.x, y = ureapHm))+   -->
+<!--   facet_wrap(bencat~., nrow = 1) + stat_smooth()+ -->
+<!--   geom_line(aes(x=time.x, y = ureapHm, group = azienda), alpha=0.3) + geom_point(alpha = 0.3)+ -->
+<!--   theme_ipsum_rc() -->
+<!-- ``` -->
