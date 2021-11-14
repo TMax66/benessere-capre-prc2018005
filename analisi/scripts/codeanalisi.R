@@ -1414,23 +1414,74 @@ urea <- massa %>%
   na.omit()
 
 
-urea <- urea %>% 
-  pivot_longer(cols = 2:3,   names_to = "metodo", values_to = "urea") %>% 
-  select(-azienda) %>% data.frame()
-  
-Meth(urea)
+# urea <- urea %>% 
+#   pivot_longer(cols = 2:3,   names_to = "metodo", values_to = "urea") %>% 
+#   select(-azienda) %>% data.frame()
+#   
+#  
 
 library(blandr)
-ss <- blandr.statistics(urea$ureaFTIR, urea$ureapHm)
-summary(ss)
+ss <- blandr.statistics(urea$ureaFTIR,  urea$ureapHm)
+
+
+
+
+X <- ss[["means"]]
+Y <- ss[["differences"]]
+
+df <- data.frame(X, Y)
+mean_diff <- mean(df$Y)
+lower <- mean_diff - 1.96*sd(Y)
+upper <- mean_diff + 1.96*sd(Y)
+
+ggplot(df, aes(x = X, y = Y))+
+  geom_point(size=2, alpha=0.6) +
+  geom_hline(yintercept = mean_diff, color = "blue", linetype = "dashed") +
+  geom_hline(yintercept = lower, color = "blue", linetype="dashed") +
+  geom_hline(yintercept = upper, color = "blue", linetype="dashed") +
+  geom_hline(yintercept = 0, color = "red")+
+  ggtitle("Bland-Altman Plot") +
+  ylab("Difference Between Measurements") +
+  xlab("Average Measurement")+
+  geom_label(
+    label="upperLOA = 13.80", 
+    x=65,
+    y=13.95,
+    label.size = 0.35,
+    color = "black"
+  )+
+  geom_label(
+    label="lowerLOA = -10.96", 
+    x=65,
+    y=-10.96,
+    label.size = 0.35,
+    color = "black"
+  )+
+  geom_label(
+    label="media = 1.42", 
+    x=65,
+    y=1.43,
+    label.size = 0.35,
+    color = "black"
+  )+
+  theme_bw()+
+  
+
+
+
+
+
+
 
 blandr.plot.ggplot(ss, method1name = "FTIR", method2name = "pH", 
-                   plotTitle = "Bland-Altman plot: confronto tra FTIR e pH per la determinazione di Urea nel latte di massa")+theme_bw()+
-  labs(x= "Medie", y = "Differenza")
+                   plotTitle = "Bland-Altman plot: confronto tra FTIR e pH per la determinazione di Urea nel latte di massa", 
+                   ciDisplay = FALSE , ciShading = FALSE )+theme_bw()+
+  labs(x= "Media dei valori di urea misurati  con FTIR e ph", y = "Differenza tra i valori di urea misurati con FTIR e ph ")+
+   
  
 library(ggplot2)
 library(BlandAltmanLeh)
-bland.altman.plot(urea$ureaFTIR, urea$ureapHm, graph.sys = "ggplot2")
+bland.altman.plot( urea$ureaFTIR, urea$ureapHm , graph.sys = "ggplot2" , conf.int=.9)
 
 
 
