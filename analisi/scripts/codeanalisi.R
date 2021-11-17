@@ -1423,9 +1423,6 @@ urea <- massa %>%
 library(blandr)
 ss <- blandr.statistics(urea$ureaFTIR,  urea$ureapHm)
 
-
-
-
 X <- ss[["means"]]
 Y <- ss[["differences"]]
 

@@ -20,15 +20,16 @@ options(scipen = 999)
 
 massa <- read_excel("analisi/data/raw/prc2018005.xlsx", 
                     sheet = "massa")
-massa%>% 
-  filter(azienda=="039bg069") %>% 
-  group_by(mese) %>% 
-  summarise(scc=geometric.mean(scc, na.rm=T))%>%  
-  ggplot(aes(x=mese, y=scc, group=1))+geom_point()+geom_line()
+# massa%>% 
+#   filter(azienda=="039bg069") %>% 
+#   group_by(mese) %>% 
+#   summarise(scc=geometric.mean(scc, na.rm=T))%>%  
+#   ggplot(aes(x=mese, y=scc, group=1))+geom_point()+geom_line()
 
 
 massa %>% 
   mutate(azienda=casefold(azienda, upper = TRUE),
+         azienda = substr(azienda, start=1, stop = 5), 
          mese=recode(mese,
                      gennaio=1,febbraio=2,marzo=3,aprile=4,
                      maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
@@ -39,8 +40,29 @@ ggplot(aes(x=time, y = log(scc)))+
   stat_smooth()+
   geom_line(aes(x=time, y = log(scc)), alpha=0.3) + geom_point(alpha = 0.3)+
   facet_wrap(~azienda, scales = "free")+
-  theme_ipsum_rc()
+  theme_ipsum_rc()+
+  theme(axis.title.y =element_text(size = 15),
+        axis.title.x = element_blank())
 
+
+massa %>% 
+  mutate(azienda=casefold(azienda, upper = TRUE),
+         azienda = substr(azienda, start=1, stop = 5), 
+         cbt=as.numeric(cbt), 
+         mese=recode(mese,
+                     gennaio=1,febbraio=2,marzo=3,aprile=4,
+                     maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
+                     ottobre=10, novembre=11,dicembre=12), 
+         time=as.Date(paste(anno, mese, 15, sep="-"))) %>% 
+  select(azienda, time, ureapHm) %>% 
+  na.omit() %>% 
+  ggplot(aes(x=time, y = ureapHm))+  
+  stat_smooth()+
+  geom_line(aes(x=time, y = ureapHm), alpha=0.3) + geom_point(alpha = 0.3)+
+  facet_wrap(~azienda, scales = "free")+
+  theme_ipsum_rc()+
+  theme(axis.title.y =element_text(size = 15),
+        axis.title.x = element_blank())
 
 
 
@@ -55,9 +77,10 @@ par %>%
               maggio=5, giugno=6, luglio=7, agosto=8, settembre=9,
               ottobre=10, novembre=11,dicembre=12), 
 time=as.Date(paste(anno, mese, 15, sep="-")))%>%  
+  filter(!is.na(cat)) %>% 
   group_by(azienda, time, cat) %>% 
     summarise(strongili=mean(strongili, na.rm=T))%>% 
-    ggplot(aes(x=time, y=strongili, color= cat))+geom_point()+geom_line()+facet_wrap(~azienda, scales = "free") +
+    ggplot(aes(x=time, y=log(strongili+1), color= cat))+geom_point()+geom_line()+facet_wrap(~azienda, scales = "free") +
   theme_ipsum_rc()
 
  
